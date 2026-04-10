@@ -46,7 +46,7 @@
         </label>
         <div class="mt-1 flex w-full flex-row gap-2">
           <Button
-            v-for="value in availableLocales"
+            v-for="value in availableLocaleCodes"
             :key="value"
             class="w-full bg-white dark:bg-neutral-900"
             :aria-pressed="value === locale"
@@ -108,7 +108,7 @@ import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useRoute } from 'vue-router';
 import { difficulties, instruments, pitchNotations } from '../data/index';
-import { useSettingsStore } from '../stores/settings';
+import { availableLocaleCodes, useSettingsStore } from '../stores/settings';
 import Button from './Button.vue';
 import Select from './Select.vue';
 import IconGitHub from './icons/IconGitHub.vue';
@@ -118,5 +118,5 @@ const route = useRoute();
 
 const { instrument, pitchNotation, difficulty, locale } = storeToRefs(settings);
 
-const { availableLocales, t } = useI18n({ useScope: 'global' });
+const { t } = useI18n({ useScope: 'global' });
 </script>

@@ -75,6 +75,7 @@ import { useKeyboard } from '../composables/useKeyboard';
 import { useStore } from '../stores/main';
 import { useSettingsStore } from '../stores/settings';
 
+// Training mode: randomizes visible notes and scores the user's guesses.
 useHead({ title: 'Play a game! – Bandoneon.app' });
 
 useKeyboard();
@@ -140,6 +141,17 @@ const octaves = computed(() => {
     .sort();
 });
 
+function shufflePositions<T>(items: T[]) {
+  const result = [...items];
+
+  for (let index = result.length - 1; index > 0; index--) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[swapIndex]] = [result[swapIndex], result[index]];
+  }
+
+  return result;
+}
+
 function resetGame() {
   // Reset guesses
   currentPosition.value = 0;
@@ -148,10 +160,7 @@ function resetGame() {
   store.setTonic(null);
 
   // Randomize position order
-  const array = [...keyPositions.value];
-  const random = array.map(() => Math.random());
-  array.sort((a, b) => random[array.indexOf(a)] - random[array.indexOf(b)]);
-  positions.value = array;
+  positions.value = shufflePositions(keyPositions.value);
 }
 
 function newGame() {

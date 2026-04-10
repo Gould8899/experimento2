@@ -10,6 +10,7 @@ import en from './locales/en.json';
 import es from './locales/es.json';
 import './style.css';
 
+// Application bootstrap: wire up plugins once and mount the root shell.
 const router = createRouter({
   history: createWebHistory(),
   routes,

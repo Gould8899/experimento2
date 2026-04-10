@@ -48,6 +48,7 @@ import { colors } from '../data/index';
 import { useStore } from '../stores/main';
 import { useSettingsStore } from '../stores/settings';
 
+// Main exploration view for the instrument: chords, scales, overlays and manual edits.
 useHead({ title: 'Bandoneon keyboard, chords and scales – Bandoneon.app' });
 
 useKeyboard();
@@ -133,8 +134,8 @@ const selected = computed(() => {
 
   const chord = chordNotes.value;
   if (chord) {
-    for (let i = 0; i <= chord.length; i++) {
-      if (chord[i]) result[chord[i]] = true;
+    for (const note of chord) {
+      result[note] = true;
     }
   }
   return result;

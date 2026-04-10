@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia';
 import chords from '../data/chords';
-import { instruments } from '../data/index';
+import { getInstrumentKeys, instruments, type NoteMatrix } from '../data/index';
 import rheinische142Layout from '../data/layouts/rheinische142';
 import { useSettingsStore } from './settings';
 
-function calculateFormulaPositions(keys: string[][]) {
+// Central store for the currently visible side, direction and selected musical context.
+
+function calculateFormulaPositions(keys: NoteMatrix) {
   const positions: [number, number, string][] = [];
   let offsetX = 0;
   let offsetY = 0;
@@ -37,7 +39,7 @@ function calculateFormulaPositions(keys: string[][]) {
 }
 
 function calculateExplicitPositions(
-  keys: string[][],
+  keys: NoteMatrix,
   side: 'right' | 'left',
 ): [number, number, string][] | null {
   const layout = rheinische142Layout[side];
@@ -82,11 +84,10 @@ export const useStore = defineStore('main', {
       const settings = useSettingsStore();
 
       if (this.side && this.direction && this.chordName) {
-        if (
-          settings.userChords[this.side] &&
-          settings.userChords[this.side][this.chordName]
-        ) {
-          return settings.userChords[this.side][this.chordName];
+        const sideUserChords = settings.userChords[this.side];
+
+        if (sideUserChords && sideUserChords[this.chordName]) {
+          return sideUserChords[this.chordName];
         }
 
         return chords[`${this.side}-${this.direction}`][this.chordName];
@@ -98,11 +99,9 @@ export const useStore = defineStore('main', {
       const settings = useSettingsStore();
 
       if (this.side && this.direction && this.chordName) {
-        if (
-          settings.userChords[this.side] &&
-          settings.userChords[this.side][this.chordName]
-        )
-          return true;
+        const sideUserChords = settings.userChords[this.side];
+
+        if (sideUserChords && sideUserChords[this.chordName]) return true;
       }
       return false;
     },
@@ -112,10 +111,11 @@ export const useStore = defineStore('main', {
 
       if (!settings.instrument) return [];
 
-      const keys = Array.isArray(instruments[settings.instrument][state.side])
-        ? instruments[settings.instrument][state.side]
-        : // @ts-expect-error TODO
-        instruments[settings.instrument][state.side][state.direction];
+      const keys = getInstrumentKeys(
+        instruments[settings.instrument],
+        state.side,
+        state.direction,
+      );
 
       if (!keys) return [];
 

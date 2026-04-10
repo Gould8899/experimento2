@@ -5,12 +5,15 @@ import peguri146 from './instruments/peguri146';
 import rheinische142 from './instruments/rheinische142';
 import rheinische152 from './instruments/rheinische152';
 
-type Instrument = Record<
-  'right' | 'left',
-  Record<'open' | 'close', string[][]> | string[][]
->;
+// Musical datasets and shared type helpers used across pages and stores.
+export type KeyboardSide = 'right' | 'left';
+export type BellowsDirection = 'open' | 'close';
+export type NoteMatrix = string[][];
+export type BisonoricLayout = Record<BellowsDirection, NoteMatrix>;
+export type InstrumentSideLayout = NoteMatrix | BisonoricLayout;
+export type Instrument = Record<KeyboardSide, InstrumentSideLayout>;
 
-export const instruments = <Record<string, Instrument>>{
+export const instruments: Record<string, Instrument> = {
   rheinische142,
   rheinische152,
   einheitsbandonion144,
@@ -18,6 +21,20 @@ export const instruments = <Record<string, Instrument>>{
   manouri148,
   einheitskonzertina128,
 };
+
+export type InstrumentName = keyof typeof instruments;
+
+export const DEFAULT_INSTRUMENT: InstrumentName = 'rheinische142';
+export const instrumentNames = Object.keys(instruments) as InstrumentName[];
+
+export function getInstrumentKeys(
+  instrument: Instrument,
+  side: KeyboardSide,
+  direction: BellowsDirection,
+): NoteMatrix {
+  const layout = instrument[side];
+  return Array.isArray(layout) ? layout : layout[direction];
+}
 
 export const difficulties = <Array<'easy' | 'medium'>>['easy', 'medium'];
 

@@ -1,6 +1,7 @@
 import { onMounted, onUnmounted } from 'vue';
 import { useStore } from '../stores/main';
 
+// Global keyboard shortcuts shared by the main keyboard view and the training game.
 export function useKeyboard() {
   const store = useStore();
 
