@@ -1,29 +1,18 @@
 <template>
-  <nav class="mx-auto flex min-h-16 w-full items-center p-2">
-    <div class="flex-1">
-      <RouterLink
-        class="inline-flex min-h-12 flex-wrap items-center justify-center rounded-lg px-4 text-xl font-semibold select-none"
-        to="/"
-      >
-        Bandoneon.app
-        <span
-          v-if="route.path === '/game'"
-          class="ms-2 text-neutral-500 dark:text-neutral-400"
-        >
-          Game
-        </span>
-      </RouterLink>
-    </div>
-    <div class="flex-none">
+  <div class="pointer-events-none fixed top-3 right-3 z-40">
+    <div
+      class="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-neutral-200/80 bg-white/92 p-1.5 shadow-sm backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/92"
+    >
       <button
-        class="inline-flex h-12 w-12 flex-wrap items-center justify-center rounded-lg font-semibold select-none"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-xl font-semibold transition select-none hover:bg-neutral-100 dark:hover:bg-neutral-800"
+        title="Theme"
         @click.prevent="isDark = !isDark"
       >
         <IconSun v-if="!isDark" class="h-5 w-5" />
         <IconMoon v-else class="h-5 w-5" />
       </button>
       <button
-        class="inline-flex h-12 w-12 flex-wrap items-center justify-center rounded-lg font-semibold select-none"
+        class="inline-flex h-10 w-10 items-center justify-center rounded-xl font-semibold transition select-none hover:bg-neutral-100 dark:hover:bg-neutral-800"
         type="button"
         title="Settings"
         @click.prevent="showMenu = !showMenu"
@@ -31,27 +20,24 @@
         <IconBars3 class="h-5 w-5" />
       </button>
     </div>
-  </nav>
+  </div>
 
-  <AppSettings v-if="showMenu" />
+  <AppSettings v-if="showMenu" @close="showMenu = false" />
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useRoute } from 'vue-router';
 import { useDark } from '../composables/useDark';
 import AppSettings from './AppSettings.vue';
 import IconBars3 from './icons/IconBars3.vue';
 import IconMoon from './icons/IconMoon.vue';
 import IconSun from './icons/IconSun.vue';
 
-const route = useRoute();
 const showMenu = ref(false);
 
 const { isDark } = useDark();
 
-watch(
-  () => route.path,
-  () => (showMenu.value = false),
-);
+watch(showMenu, (value) => {
+  document.documentElement.classList.toggle('has-floating-menu', value);
+});
 </script>

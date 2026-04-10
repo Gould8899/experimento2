@@ -1,17 +1,18 @@
 <template>
   <footer
-    class="mx-auto my-10 flex flex-wrap justify-center gap-1 px-4 text-sm text-neutral-500 dark:text-neutral-400"
+    class="flex flex-wrap items-center justify-between gap-2 text-xs text-neutral-500 dark:text-neutral-400"
   >
-    <div>Made with <span class="text-red-500">♥</span> in Vienna.</div>
+    <div>Bandoneón.app</div>
     <div>
-      The source code is available on
+      Instrument mapping adapted from the original work of
       <a
         class="underline"
         target="_blank"
         href="https://github.com/nicokaiser/bandoneon/"
+        rel="noreferrer"
       >
-        GitHub</a
-      >.
+        Nico Kaiser</a
+      >
     </div>
   </footer>
 </template>

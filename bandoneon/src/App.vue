@@ -1,15 +1,15 @@
 <template>
-  <div class="flex min-h-screen flex-col">
-    <AppHeader />
-    <RouterView />
-    <AppFooter />
+  <div
+    class="flex h-screen flex-col overflow-hidden bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50"
+  >
+    <main class="min-h-0 flex-1 overflow-hidden">
+      <RouterView />
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { useHead } from '@unhead/vue';
-import AppFooter from './components/AppFooter.vue';
-import AppHeader from './components/AppHeader.vue';
 import { useAppSettings } from './composables/useAppSettings';
 
 // Root shell: keeps layout simple and delegates settings sync/persistence to a composable.

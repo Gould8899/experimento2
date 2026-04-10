@@ -33,7 +33,7 @@ export function useKeyboard() {
     if (key === '7') return store.setChordType('7');
 
     // Escape
-    if (key === 'Escape') return store.setTonic(null);
+    if (key === 'Escape') return store.resetSearch();
   }
 
   onMounted(() => document.addEventListener('keydown', listener));

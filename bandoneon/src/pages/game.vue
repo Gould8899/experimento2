@@ -1,45 +1,131 @@
 <template>
-  <div class="mx-auto flex w-full max-w-[896px] flex-1 items-center px-6 pt-6">
-    <SvgKeyboard :side="side" :mode="viewMode">
-      <SvgButton
-        v-for="([x, y, tonal], idx) in positions"
-        :key="idx"
-        :x="x"
-        :y="y"
-        :tonal="tonal"
-        :label="label(idx)"
-        :selected="idx === currentPosition"
-        :color="fillColor(idx)"
-        :label-rotation="labelRotation"
-      />
-    </SvgKeyboard>
-  </div>
-  <div class="mx-auto max-w-(--breakpoint-md) px-6 pb-6">
-    <NavVariant :readonly="currentPosition > 0" />
-    <NavTonic />
-    <!-- Medium mode: display octave buttons -->
-    <div
-      v-if="difficulty !== 'easy'"
-      class="mb-2 flex flex-wrap justify-center"
-    >
-      <Button
-        v-for="octave in octaves"
-        :key="octave"
-        class="m-1 w-12"
-        :disabled="!tonic"
-        @click.prevent="oct = octave"
+  <div class="h-full overflow-hidden p-2 md:p-3">
+    <div class="grid h-full min-h-0 gap-4 xl:grid-cols-[22rem_minmax(0,1fr)]">
+      <aside
+        class="order-2 grid min-h-0 content-start gap-3 overflow-hidden rounded-3xl border border-neutral-200 bg-white p-4 shadow-sm xl:order-1 dark:border-neutral-800 dark:bg-neutral-900"
       >
-        {{ formatOctave(octave) }}
-      </Button>
+        <div class="rounded-2xl bg-neutral-100 p-3 dark:bg-neutral-800/80">
+          <div
+            class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            Training
+          </div>
+          <div class="mt-1 text-lg font-semibold tracking-tight">
+            {{ currentPrompt }}
+          </div>
+          <div class="mt-2 text-xs text-neutral-500 dark:text-neutral-400">
+            {{ t('difficulty') }}: {{ t('difficulty-' + difficulty) }}
+          </div>
+        </div>
+
+        <section
+          class="rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
+        >
+          <div
+            class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            Manual
+          </div>
+          <NavVariant compact :readonly="currentPosition > 0" />
+        </section>
+
+        <section
+          class="rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
+        >
+          <div
+            class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            Note
+          </div>
+          <NavTonic compact />
+        </section>
+
+        <section
+          v-if="difficulty !== 'easy'"
+          class="rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
+        >
+          <div
+            class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            Octave
+          </div>
+          <div class="flex flex-wrap gap-1.5">
+            <Button
+              v-for="octave in octaves"
+              :key="octave"
+              class="w-10 px-0 text-xs"
+              :aria-pressed="octave === oct"
+              :disabled="!tonic"
+              @click.prevent="oct = octave"
+            >
+              {{ formatOctave(octave) }}
+            </Button>
+          </div>
+        </section>
+
+        <section
+          class="rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
+        >
+          <div
+            class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            Progress
+          </div>
+          <Progress
+            :values="[
+              { value: progress[2], color: '#22c55e' /* green-500 */ },
+              { value: progress[1], color: '#eab308' /* yellow-500 */ },
+              { value: progress[0], color: '#ef4444' /* red-500 */ },
+            ]"
+          />
+        </section>
+
+        <OtherPanel />
+      </aside>
+
+      <section
+        class="order-1 flex min-h-0 flex-col overflow-hidden rounded-3xl border border-neutral-200 bg-white p-3 shadow-sm xl:order-2 dark:border-neutral-800 dark:bg-neutral-900"
+      >
+        <div
+          class="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-neutral-100 px-4 py-3 dark:bg-neutral-800/80"
+        >
+          <div>
+            <div
+              class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
+            >
+              Current guess
+            </div>
+            <div class="text-sm font-semibold tracking-tight">
+              {{ currentPrompt }}
+            </div>
+          </div>
+          <div
+            class="text-right text-xs text-neutral-500 dark:text-neutral-400"
+          >
+            <div>{{ t(side) }} · {{ formatMode(viewMode) }}</div>
+            <div>{{ Math.round(progress[2] * 100) }}%</div>
+          </div>
+        </div>
+
+        <div
+          class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl bg-neutral-100/80 px-2 py-3 dark:bg-neutral-800/40"
+        >
+          <SvgKeyboard :side="side" :mode="viewMode">
+            <SvgButton
+              v-for="([x, y, tonal], idx) in positions"
+              :key="idx"
+              :x="x"
+              :y="y"
+              :tonal="tonal"
+              :label="label(idx)"
+              :selected="idx === currentPosition"
+              :color="fillColor(idx)"
+              :label-rotation="labelRotation"
+            />
+          </SvgKeyboard>
+        </div>
+      </section>
     </div>
-    <Progress
-      class="mt-8"
-      :values="[
-        { value: progress[2], color: '#22c55e' /* green-500 */ },
-        { value: progress[1], color: '#eab308' /* yellow-500 */ },
-        { value: progress[0], color: '#ef4444' /* red-500 */ },
-      ]"
-    />
   </div>
   <Modal v-model="isModalOpen">
     <div class="px-4 py-8 text-center">
@@ -68,6 +154,7 @@ import Button from '../components/Button.vue';
 import Modal from '../components/Modal.vue';
 import NavTonic from '../components/NavTonic.vue';
 import NavVariant from '../components/NavVariant.vue';
+import OtherPanel from '../components/OtherPanel.vue';
 import Progress from '../components/Progress.vue';
 import SvgButton from '../components/SvgButton.vue';
 import SvgKeyboard from '../components/SvgKeyboard.vue';
@@ -94,10 +181,20 @@ const { tonic, keyPositions, side } = storeToRefs(store);
 const settings = useSettingsStore();
 const { pitchNotation, difficulty, viewMode } = storeToRefs(settings);
 
+const currentPrompt = computed(() => {
+  if (currentPosition.value >= positions.value.length)
+    return t('finished_round');
+  return tonic.value ? tonic.value : t('guess_the_note');
+});
+
 const labelRotation = computed(() => {
   if (viewMode.value !== 'real') return 0;
   return side.value === 'left' ? 90 : -90;
 });
+
+const formatMode = (value: 'real' | 'flat') => {
+  return value === 'real' ? t('view_real') : t('view_flat');
+};
 
 const formatOctave = (octave: number) => {
   if (pitchNotation.value !== 'helmholtz') {

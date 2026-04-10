@@ -1,10 +1,9 @@
 <template>
   <svg
     ref="svgEl"
-    :class="['keyboard', 'mb-4', { 'keyboard--real': mode === 'real' }]"
+    :class="['keyboard', { 'keyboard--real': mode === 'real' }]"
     :viewBox="viewBox"
-    :width="svgWidth"
-    :height="svgHeight"
+    preserveAspectRatio="xMidYMid meet"
   >
     <g :transform="contentTransform">
       <slot />
@@ -34,14 +33,6 @@ const svgEl = ref();
 const viewBox = computed(() => {
   if (props.mode === 'flat') return `0 0 ${landscapeWidth} ${landscapeHeight}`;
   return `0 0 ${landscapeHeight} ${landscapeWidth}`;
-});
-
-const svgWidth = computed(() => {
-  return props.mode === 'flat' ? 720 : 428;
-});
-
-const svgHeight = computed(() => {
-  return props.mode === 'flat' ? 428 : 720;
 });
 
 const contentTransform = computed(() => {
@@ -105,12 +96,14 @@ defineExpose({ download });
   display: block;
   width: 100%;
   height: auto;
-  max-height: calc(90vh - 5em);
-  min-height: 10rem;
+  min-height: 0;
   margin-inline: auto;
 }
 
 .keyboard--real {
-  max-width: min(100%, 28rem);
+  width: min(100%, 31rem);
+  height: min(100%, 42rem);
+  max-width: 100%;
+  max-height: 100%;
 }
 </style>

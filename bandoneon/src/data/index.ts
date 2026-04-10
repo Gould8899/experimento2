@@ -1,9 +1,5 @@
-import einheitsbandonion144 from './instruments/einheitsbandonion144';
-import einheitskonzertina128 from './instruments/einheitskonzertina128';
-import manouri148 from './instruments/manouri148';
-import peguri146 from './instruments/peguri146';
+import { Note } from 'tonal';
 import rheinische142 from './instruments/rheinische142';
-import rheinische152 from './instruments/rheinische152';
 
 // Musical datasets and shared type helpers used across pages and stores.
 export type KeyboardSide = 'right' | 'left';
@@ -15,11 +11,6 @@ export type Instrument = Record<KeyboardSide, InstrumentSideLayout>;
 
 export const instruments: Record<string, Instrument> = {
   rheinische142,
-  rheinische152,
-  einheitsbandonion144,
-  peguri146,
-  manouri148,
-  einheitskonzertina128,
 };
 
 export type InstrumentName = keyof typeof instruments;
@@ -36,6 +27,61 @@ export function getInstrumentKeys(
   return Array.isArray(layout) ? layout : layout[direction];
 }
 
+function flattenNoteMatrix(layout: NoteMatrix) {
+  return layout.flatMap((row) => row.filter(Boolean));
+}
+
+export function getAllInstrumentNotes(instrumentName: InstrumentName) {
+  const instrument = instruments[instrumentName];
+  const seen = new Set<string>();
+
+  for (const side of ['left', 'right'] as const) {
+    const sideLayout = instrument[side];
+    const matrices = Array.isArray(sideLayout)
+      ? [sideLayout]
+      : [sideLayout.open, sideLayout.close];
+
+    for (const matrix of matrices) {
+      for (const note of flattenNoteMatrix(matrix)) {
+        seen.add(note);
+      }
+    }
+  }
+
+  return [...seen].sort((left, right) => {
+    const leftMidi = Note.midi(left) ?? 0;
+    const rightMidi = Note.midi(right) ?? 0;
+    return leftMidi - rightMidi;
+  });
+}
+
+export function getInstrumentNotesForSide(
+  instrumentName: InstrumentName,
+  side: KeyboardSide,
+) {
+  const instrument = instruments[instrumentName];
+  const sideLayout = instrument[side];
+  const matrices = Array.isArray(sideLayout)
+    ? [sideLayout]
+    : [sideLayout.open, sideLayout.close];
+  const seen = new Set<string>();
+
+  for (const matrix of matrices) {
+    for (const note of flattenNoteMatrix(matrix)) {
+      seen.add(note);
+    }
+  }
+
+  return [...seen].sort((left, right) => {
+    const leftMidi = Note.midi(left) ?? 0;
+    const rightMidi = Note.midi(right) ?? 0;
+    return leftMidi - rightMidi;
+  });
+}
+
+export const instrumentFullNoteRange =
+  getAllInstrumentNotes(DEFAULT_INSTRUMENT);
+
 export const difficulties = <Array<'easy' | 'medium'>>['easy', 'medium'];
 
 export const pitchNotations = <Array<'scientific' | 'helmholtz' | 'solfege'>>[
@@ -43,6 +89,17 @@ export const pitchNotations = <Array<'scientific' | 'helmholtz' | 'solfege'>>[
   'helmholtz',
   'solfege',
 ];
+
+export type ScaleTypeOption = {
+  value: string;
+  label: string;
+};
+
+export type HarmonicTypeOption = {
+  value: string;
+  label?: string;
+  text?: string;
+};
 
 export const notes = [
   'C',
@@ -59,9 +116,54 @@ export const notes = [
   'B',
 ];
 
-export const scaleTypes = ['major', 'minor', 'chromatic'];
+export const scaleTypes: ScaleTypeOption[] = [
+  { value: 'chromatic', label: 'chromatic' },
+  { value: 'whole tone', label: 'whole_tone' },
+  { value: 'diminished', label: 'whole_half_diminished' },
+  { value: 'augmented', label: 'augmented_tone_semitone' },
+  { value: 'major', label: 'major' },
+  { value: 'minor', label: 'minor' },
+];
 
-export const chordTypes = ['M', 'm', '7', 'dim', 'm7', 'M7'];
+export const chordTypes: HarmonicTypeOption[] = [
+  { value: 'M', label: 'major' },
+  { value: 'm', label: 'minor' },
+  { value: 'aug', label: 'augmented' },
+  { value: 'dim', label: 'diminished' },
+  { value: '7', text: '7' },
+  { value: 'm7', text: 'm7' },
+  { value: 'M7', text: 'M7' },
+];
+
+export const arpeggioTypes: HarmonicTypeOption[] = [
+  { value: 'arp:M', label: 'arpeggio_major' },
+  { value: 'arp:m', label: 'arpeggio_minor' },
+  { value: 'arp:aug', label: 'arpeggio_augmented' },
+  { value: 'arp:dim', label: 'arpeggio_diminished' },
+];
+
+export const harmonicTypes: HarmonicTypeOption[] = [
+  ...arpeggioTypes,
+  ...chordTypes,
+];
+
+export function isArpeggioType(chordType: string | null) {
+  return Boolean(chordType?.startsWith('arp:'));
+}
+
+export function normalizeChordType(chordType: string | null) {
+  if (!chordType) return null;
+  return chordType.startsWith('arp:') ? chordType.slice(4) : chordType;
+}
+
+export function usesFormulaChordType(chordType: string | null) {
+  return isArpeggioType(chordType) || normalizeChordType(chordType) === 'aug';
+}
+
+export function findHarmonicType(chordType: string | null) {
+  if (!chordType) return null;
+  return harmonicTypes.find((item) => item.value === chordType) ?? null;
+}
 
 export const colors = [
   '#22c55e', // green-500

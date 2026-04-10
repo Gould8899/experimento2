@@ -1,5 +1,10 @@
 <template>
-  <g :class="{ selected }" @click.prevent="emit('click')">
+  <g
+    :class="{ selected, muted }"
+    @pointerdown="!muted && emit('start')"
+    @click.prevent="!muted && emit('click')"
+    @pointerenter="!muted && emit('hover')"
+  >
     <circle
       :cx="x + 29"
       :cy="y + 29"
@@ -44,19 +49,21 @@ const props = withDefaults(
     y: number;
     tonal: string;
     selected?: boolean;
+    muted?: boolean;
     label?: string | null;
     color?: string;
     labelRotation?: number;
   }>(),
   {
     selected: false,
+    muted: false,
     label: null,
     color: undefined,
     labelRotation: 0,
   },
 );
 
-const emit = defineEmits<{ click: [] }>();
+const emit = defineEmits<{ start: []; click: []; hover: [] }>();
 
 const store = useStore();
 const settings = useSettingsStore();
@@ -84,11 +91,13 @@ const format = computed(() => {
 
 const fill = computed(() => {
   if (props.selected) return 'currentColor';
+  if (props.muted) return 'rgba(148, 163, 184, 0.14)';
   if (props.color) return props.color;
   return 'transparent';
 });
 
 const stroke = computed(() => {
+  if (props.muted) return '#cbd5e1';
   return props.selected ? 'currentColor' : '#000';
 });
 
@@ -108,6 +117,10 @@ circle {
   stroke: #262626;
 }
 
+.muted text {
+  opacity: 0.38;
+}
+
 text {
   user-select: none;
   cursor: default;
@@ -120,5 +133,13 @@ text {
 
 .dark .selected text {
   fill: #262626;
+}
+
+.dark .muted circle {
+  stroke: #475569;
+}
+
+.dark .muted text {
+  opacity: 0.44;
 }
 </style>

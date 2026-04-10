@@ -1,6 +1,13 @@
 import { defineStore } from 'pinia';
+import { Note } from 'tonal';
 import chords from '../data/chords';
-import { getInstrumentKeys, instruments, type NoteMatrix } from '../data/index';
+import {
+  getInstrumentKeys,
+  instruments,
+  normalizeChordType,
+  type NoteMatrix,
+  usesFormulaChordType,
+} from '../data/index';
 import rheinische142Layout from '../data/layouts/rheinische142';
 import { useSettingsStore } from './settings';
 
@@ -61,15 +68,46 @@ function calculateExplicitPositions(
   return index === layout.length ? positions : null;
 }
 
+const chordIntervals: Record<string, string[]> = {
+  M: ['1P', '3M', '5P'],
+  m: ['1P', '3m', '5P'],
+  aug: ['1P', '3M', '5A'],
+  dim: ['1P', '3m', '5d'],
+  '7': ['1P', '3M', '5P', '7m'],
+  m7: ['1P', '3m', '5P', '7m'],
+  M7: ['1P', '3M', '5P', '7M'],
+};
+
+function buildChordFormula(tonic: string, chordType: string | null) {
+  const normalizedChordType = normalizeChordType(chordType);
+  if (!normalizedChordType) return [];
+
+  const intervals = chordIntervals[normalizedChordType];
+  if (!intervals) return [];
+
+  return intervals.map((interval) =>
+    Note.simplify(Note.transpose(`${tonic}4`, interval)),
+  );
+}
+
+function getChordPitchClasses(notes: string[]) {
+  return new Set(
+    notes
+      .map((note) => Note.get(note).chroma)
+      .filter((chroma): chroma is number => typeof chroma === 'number'),
+  );
+}
+
 export const useStore = defineStore('main', {
   state: () => ({
-    showColors: false,
+    showColors: true,
     showEnharmonics: false,
     side: 'right' as 'right' | 'left',
     direction: 'open' as 'open' | 'close',
-    tonic: null as null | string,
+    tonic: 'C' as null | string,
     chordType: null as null | string,
-    scaleType: null as null | string,
+    scaleType: 'chromatic' as null | string,
+    resetNonce: 0,
   }),
 
   getters: {
@@ -80,17 +118,35 @@ export const useStore = defineStore('main', {
       return null;
     },
 
+    chordFormulaNotes(): string[] {
+      if (!this.tonic || !this.chordType) return [];
+      return buildChordFormula(this.tonic, this.chordType);
+    },
+
     chordNotes(): string[] {
       const settings = useSettingsStore();
 
       if (this.side && this.direction && this.chordName) {
+        if (usesFormulaChordType(this.chordType)) {
+          const pitchClasses = getChordPitchClasses(
+            buildChordFormula(this.tonic ?? 'C', this.chordType),
+          );
+
+          return this.keyPositions
+            .map(([, , note]) => note)
+            .filter((note) => {
+              const chroma = Note.get(note).chroma;
+              return typeof chroma === 'number' && pitchClasses.has(chroma);
+            });
+        }
+
         const sideUserChords = settings.userChords[this.side];
 
         if (sideUserChords && sideUserChords[this.chordName]) {
           return sideUserChords[this.chordName];
         }
 
-        return chords[`${this.side}-${this.direction}`][this.chordName];
+        return chords[`${this.side}-${this.direction}`][this.chordName] ?? [];
       }
       return [];
     },
@@ -132,13 +188,8 @@ export const useStore = defineStore('main', {
     setTonic(tonic: string | null) {
       if (tonic) {
         this.tonic = tonic;
-        if (!this.scaleType && !this.chordType) {
-          this.chordType = 'M';
-        }
       } else {
-        this.tonic = null;
-        this.chordType = null;
-        this.scaleType = null;
+        this.resetSearch();
       }
     },
 
@@ -152,6 +203,17 @@ export const useStore = defineStore('main', {
       if (this.scaleType) this.scaleType = null;
       if (!this.tonic) this.tonic = 'C';
       this.chordType = chordType;
+    },
+
+    resetSearch() {
+      this.side = 'right';
+      this.direction = 'open';
+      this.tonic = 'C';
+      this.chordType = null;
+      this.scaleType = 'chromatic';
+      this.showEnharmonics = false;
+      this.showColors = true;
+      this.resetNonce += 1;
     },
   },
 });

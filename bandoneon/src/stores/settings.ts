@@ -14,6 +14,7 @@ type ViewMode = 'real' | 'flat';
 type PitchNotation = 'scientific' | 'helmholtz' | 'solfege';
 type Difficulty = 'medium' | 'easy';
 type UserChordMap = Partial<Record<KeyboardSide, Record<string, string[]>>>;
+type SoundEnabled = boolean;
 
 export function isSupportedLocale(value: string): value is AppLocale {
   return availableLocaleCodes.includes(value as AppLocale);
@@ -33,6 +34,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const pitchNotation = ref<PitchNotation>('scientific');
   const userChords = ref<UserChordMap>({});
   const difficulty = ref<Difficulty>('medium');
+  const soundEnabled = ref<SoundEnabled>(true);
 
   function saveUserChord(
     side: KeyboardSide,
@@ -54,6 +56,7 @@ export const useSettingsStore = defineStore('settings', () => {
     pitchNotation,
     userChords,
     difficulty,
+    soundEnabled,
     saveUserChord,
     resetUserChord,
   };
