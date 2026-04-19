@@ -1,6 +1,6 @@
-# [Bandoneon.app](http://bandoneon.app)
+# Bandoneon Workspace
 
-A little JavaScript application that wants to help learning the bandoneon.
+Responsive workspace for exploring the bandoneon keyboard, chords, scales and note practice.
 
 ![Screenshot](./screenshot.png)
 
@@ -12,18 +12,6 @@ A little JavaScript application that wants to help learning the bandoneon.
 ## Start development server
 
     npm run dev
-
-## Author
-
-### Nico Kaiser
-
-- <https://bsky.app/profile/nico.kaiser.me>
-- <https://kaiser.me>
-- <https://github/nicokaiser>
-
-## Related projects
-
-- [Keyboard Accordion](https://github.com/taniarascia/accordion) by [taniarascia](https://github.com/taniarascia) lets you play the 3-row diatonic button accordion with your computer keyboard
 
 ## License
 

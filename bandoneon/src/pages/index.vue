@@ -1,15 +1,17 @@
 <template>
-  <div class="h-full overflow-auto p-1.5 md:p-2 lg:overflow-hidden">
+  <div
+    class="h-full overflow-x-hidden overflow-y-auto p-1.5 md:p-2 lg:overflow-hidden lg:overflow-y-hidden"
+  >
     <div
-      class="grid min-h-full gap-2.5 lg:h-full lg:min-h-0 lg:grid-cols-[16rem_minmax(0,1fr)] 2xl:grid-cols-[17rem_minmax(0,1fr)]"
+      class="grid min-h-full gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]"
     >
       <aside
-        class="grid content-start gap-2.5 rounded-3xl border border-neutral-200 bg-white p-3 shadow-sm lg:min-h-0 lg:overflow-y-auto dark:border-neutral-800 dark:bg-neutral-900"
+        class="grid min-w-0 content-start gap-2 overflow-x-hidden rounded-3xl border border-neutral-200 bg-white p-2.5 shadow-sm lg:min-h-0 lg:overflow-y-auto dark:border-neutral-800 dark:bg-neutral-900"
       >
         <section
-          class="rounded-2xl border border-neutral-200 p-2.5 dark:border-neutral-800"
+          class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
         >
-          <div class="grid gap-3">
+          <div class="grid gap-2.5">
             <NavVariant compact />
             <div
               class="border-t border-neutral-200/80 dark:border-neutral-800"
@@ -30,28 +32,47 @@
           </div>
         </section>
 
-        <OtherPanel
-          :summary-title="t('workspace')"
-          :summary-primary="selectionSummary"
-          :summary-meta="`${instrumentLabel} · ${sideLabel} · ${directionLabel}`"
-          :summary-secondary="`${viewModeLabel} · ${soundStatusLabel}`"
-        />
+        <section
+          class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
+        >
+          <div class="grid gap-2.5">
+            <div>
+              <div
+                class="text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-neutral-400"
+              >
+                {{ t('open_settings') }}
+              </div>
+              <div
+                class="mt-0.5 truncate text-[11px] text-neutral-500 dark:text-neutral-400"
+                :title="t('settings_summary')"
+              >
+                {{ t('settings_summary') }}
+              </div>
+            </div>
+
+            <Button class="w-full" @click="showSettings = true">
+              {{ t('open_settings') }}
+            </Button>
+          </div>
+        </section>
       </aside>
 
       <section
-        class="flex min-h-0 flex-col rounded-3xl border border-neutral-200 bg-white p-1.5 shadow-sm lg:overflow-hidden dark:border-neutral-800 dark:bg-neutral-900"
+        class="flex min-h-0 flex-col rounded-3xl border border-neutral-200 bg-white p-1.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
         <div
           class="grid min-h-0 flex-1 gap-2.5 lg:grid-rows-[minmax(0,1fr)_auto]"
         >
           <div
             ref="bandoneonPanelEl"
-            class="grid min-h-0 gap-2.5 lg:grid-cols-[minmax(0,1.28fr)_minmax(22rem,1.08fr)] xl:grid-cols-[minmax(0,1.2fr)_minmax(26rem,1.18fr)]"
+            class="grid min-h-0 gap-2.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.98fr)] 2xl:grid-cols-[minmax(0,1.16fr)_minmax(22rem,1fr)]"
           >
             <div
-              class="flex min-h-[24rem] min-w-0 items-center justify-center overflow-visible rounded-2xl bg-neutral-100/80 px-1.5 py-3 sm:min-h-[29rem] lg:min-h-[33rem] dark:bg-neutral-800/40"
+              class="flex min-h-[20rem] min-w-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-100/80 px-1 py-2 sm:min-h-[24rem] lg:min-h-[26rem] xl:min-h-[28rem] 2xl:min-h-[34rem] dark:bg-neutral-800/40"
             >
-              <div class="flex h-full w-full items-center justify-center">
+              <div
+                class="flex h-full min-h-0 w-full items-center justify-center"
+              >
                 <SvgKeyboard ref="keyboardEl" :side="side" :mode="viewMode">
                   <SvgButton
                     v-for="([x, y, tonal], idx) in keyPositions"
@@ -131,6 +152,8 @@
         </div>
       </section>
     </div>
+
+    <AppSettings v-if="showSettings" @close="showSettings = false" />
   </div>
 </template>
 
@@ -140,9 +163,10 @@ import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
 import { Note } from 'tonal';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import AppSettings from '../components/AppSettings.vue';
+import Button from '../components/Button.vue';
 import NavDisplay from '../components/NavDisplay.vue';
 import NavVariant from '../components/NavVariant.vue';
-import OtherPanel from '../components/OtherPanel.vue';
 import PianoKeyboard from '../components/PianoKeyboard.vue';
 import StaffDisplay from '../components/StaffDisplay.vue';
 import SvgButton from '../components/SvgButton.vue';
@@ -152,11 +176,9 @@ import { useKeyboard } from '../composables/useKeyboard';
 import { useSynth } from '../composables/useSynth';
 import {
   colors,
-  findHarmonicType,
   getInstrumentNotesForSide,
   instrumentFullNoteRange,
   isArpeggioType,
-  scaleTypes,
   usesFormulaChordType,
 } from '../data/index';
 import { useStore } from '../stores/main';
@@ -172,8 +194,6 @@ import {
   selectionsEqual,
   type PaintGestureMode,
 } from '../utils/paintGesture';
-import { isSpecialScaleType } from '../utils/scaleType';
-import { formatDisplayedNote } from '../utils/staffNotation';
 import {
   appendRecentPlaybackNotes,
   resolveStaffState,
@@ -181,7 +201,9 @@ import {
 } from '../utils/staffState';
 
 // Main exploration view for the instrument: chords, scales, overlays and manual edits.
-useHead({ title: 'Bandoneon keyboard, chords and scales – Bandoneon.app' });
+useHead({
+  title: 'Bandoneon keyboard, chords and scales - Bandoneon Workspace',
+});
 
 const { t } = useI18n({ useScope: 'global' });
 const { playNote, stopAll, stopNote } = useSynth();
@@ -190,6 +212,7 @@ const keyboardEl = ref<typeof SvgKeyboard>();
 const bandoneonPanelEl = ref<HTMLDivElement | null>(null);
 const staffPanelEl = ref<HTMLDivElement | null>(null);
 const pianoPanelEl = ref<HTMLDivElement | null>(null);
+const showSettings = ref(false);
 
 const store = useStore();
 const {
@@ -211,15 +234,6 @@ const settings = useSettingsStore();
 const { instrument, showScaleGuides, soundEnabled, soundMode, viewMode } =
   storeToRefs(settings);
 
-const instrumentLabel = computed(() => t(instrument.value));
-const sideLabel = computed(() => t(side.value));
-const directionLabel = computed(() => t(direction.value));
-const viewModeLabel = computed(() =>
-  viewMode.value === 'real' ? t('view_real') : t('view_flat'),
-);
-const soundStatusLabel = computed(() =>
-  soundEnabled.value ? t('sound') : `${t('sound')} ${t('off')}`,
-);
 const canResetSelection = computed(() => isModified.value || store.isUserChord);
 const isArpeggioSelection = computed(() => isArpeggioType(chordType.value));
 const usesFormulaChordSelection = computed(() =>
@@ -252,47 +266,6 @@ const resetSearchShortcut = computed(() =>
   hasSearchContextToReset.value ? 'Esc Esc' : undefined,
 );
 const actionsShortcutHint = computed(() => t('actions_escape_hint'));
-const chordLabel = computed(() => {
-  const harmonicType = findHarmonicType(chordType.value);
-  if (!harmonicType) return chordType.value;
-
-  return 'text' in harmonicType
-    ? harmonicType.text
-    : t(harmonicType.label ?? harmonicType.value);
-});
-const formattedTonic = computed(() => {
-  if (!tonic.value) return null;
-
-  return formatDisplayedNote(
-    `${tonic.value}4`,
-    settings.pitchNotation,
-    showEnharmonics.value,
-    { includeOctave: false },
-  );
-});
-const selectionSummary = computed(() => {
-  if (formattedTonic.value && chordLabel.value) {
-    return isArpeggioSelection.value
-      ? `${formattedTonic.value} ${t('arpeggio')} ${chordLabel.value}`
-      : `${formattedTonic.value} ${chordLabel.value}`;
-  }
-  if (scaleType.value) {
-    const scale = scaleTypes.find((item) => item.value === scaleType.value);
-
-    if (isSpecialScaleType(scaleType.value)) {
-      return scale ? t(scale.label) : scaleType.value;
-    }
-
-    if (!tonic.value) {
-      return scale ? t(scale.label) : scaleType.value;
-    }
-
-    return `${formattedTonic.value} ${scale ? t(scale.label) : scaleType.value}`;
-  }
-  if (formattedTonic.value) return formattedTonic.value;
-  return t('workspace_idle');
-});
-
 const isModified = ref(false);
 const userSelection = ref<Record<string, boolean>>({});
 const interactionMode = ref<'paint-on'>('paint-on');

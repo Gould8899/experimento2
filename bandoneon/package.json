@@ -1,15 +1,9 @@
 {
   "name": "bandoneon",
   "version": "4.5.12",
-  "description": "A little JavaScript application that wants to help learning the Alfred Arnold 142 bandoneon.",
+  "description": "Responsive bandoneon keyboard workspace for chords, scales and practice.",
   "private": true,
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nicokaiser/bandoneon.git"
-  },
-  "author": "Nico Kaiser",
   "license": "MIT",
-  "homepage": "https://bandoneon.app",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",

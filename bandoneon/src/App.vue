@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex h-screen flex-col overflow-hidden bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50"
+    class="flex h-screen min-h-dvh flex-col overflow-hidden bg-neutral-50 text-neutral-900 dark:bg-neutral-950 dark:text-neutral-50"
   >
     <main class="min-h-0 flex-1 overflow-hidden">
       <RouterView />
@@ -14,7 +14,7 @@ import { useAppSettings } from './composables/useAppSettings';
 
 // Root shell: keeps layout simple and delegates settings sync/persistence to a composable.
 
-useHead({ title: 'Bandoneon.app' });
+useHead({ title: 'Bandoneon Workspace' });
 
 useAppSettings();
 </script>

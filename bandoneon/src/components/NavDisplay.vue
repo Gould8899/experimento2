@@ -1,5 +1,10 @@
 <template>
-  <div :class="['print:hidden', compact ? 'grid gap-3' : 'grid gap-4']">
+  <div
+    :class="[
+      'min-w-0 overflow-x-hidden print:hidden',
+      compact ? 'grid gap-3' : 'grid gap-4',
+    ]"
+  >
     <div>
       <div
         class="mb-1.5 text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none dark:text-neutral-200"
@@ -12,9 +17,9 @@
           class="w-full"
           @click.prevent="showEnharmonics = false"
         >
-          <span class="flex items-center justify-center gap-2">
+          <span class="flex min-w-0 items-center justify-center gap-2">
             <span class="text-[1.35rem] leading-none font-black">♯</span>
-            <span>{{ t('accidentals_sharp') }}</span>
+            <span class="truncate">{{ t('accidentals_sharp') }}</span>
           </span>
         </Button>
         <Button
@@ -22,9 +27,9 @@
           class="w-full"
           @click.prevent="showEnharmonics = true"
         >
-          <span class="flex items-center justify-center gap-2">
+          <span class="flex min-w-0 items-center justify-center gap-2">
             <span class="text-[1.45rem] leading-none font-black">♭</span>
-            <span>{{ t('accidentals_flat') }}</span>
+            <span class="truncate">{{ t('accidentals_flat') }}</span>
           </span>
         </Button>
       </div>
@@ -130,11 +135,11 @@
           class="w-full"
           @click.prevent="emit('reset')"
         >
-          <span class="inline-flex items-center gap-1">
-            <span>{{ resetTitle || t('reset_voicing') }}</span>
+          <span class="inline-flex min-w-0 items-center gap-1">
+            <span class="truncate">{{ resetTitle || t('reset_voicing') }}</span>
             <span
               v-if="resetShortcut"
-              class="text-[11px] font-medium opacity-70"
+              class="shrink-0 text-[11px] font-medium opacity-70"
             >
               ({{ resetShortcut }})
             </span>
@@ -145,11 +150,11 @@
           class="w-full"
           @click.prevent="emit('resetSearch')"
         >
-          <span class="inline-flex items-center gap-1">
-            <span>{{ t('reset_all') }}</span>
+          <span class="inline-flex min-w-0 items-center gap-1">
+            <span class="truncate">{{ t('reset_all') }}</span>
             <span
               v-if="resetSearchShortcut"
-              class="text-[11px] font-medium opacity-70"
+              class="shrink-0 text-[11px] font-medium opacity-70"
             >
               ({{ resetSearchShortcut }})
             </span>

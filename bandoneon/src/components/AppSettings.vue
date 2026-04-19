@@ -4,11 +4,11 @@
     @click.self="emit('close')"
   >
     <aside
-      class="absolute inset-x-3 top-3 max-h-[calc(100vh-1.5rem)] overflow-auto rounded-3xl border border-neutral-200 bg-white p-4 shadow-2xl sm:inset-x-auto sm:top-3 sm:right-3 sm:w-[30rem] dark:border-neutral-700 dark:bg-neutral-900"
+      class="absolute inset-x-3 top-3 max-h-[calc(100vh-1.5rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-4 shadow-2xl sm:inset-x-auto sm:top-3 sm:right-3 sm:w-[34rem] lg:w-[38rem] dark:border-neutral-700 dark:bg-neutral-900"
     >
       <div class="mb-4 flex items-center justify-between gap-4">
         <div>
-          <div class="text-sm font-semibold">Bandoneón.app</div>
+          <div class="text-sm font-semibold">Bandoneon Workspace</div>
           <div class="text-xs text-neutral-500 dark:text-neutral-400">
             {{ t('settings_summary') }}
           </div>
@@ -36,147 +36,213 @@
         </div>
       </div>
 
-      <div class="mb-4">
-        <label
-          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+      <div class="grid gap-4 lg:grid-cols-2">
+        <section
+          class="rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
         >
-          {{ t('pitch_notation') }}
-        </label>
-        <div class="mt-1 flex w-full flex-row gap-2">
-          <Button
-            v-for="value in pitchNotations"
-            :key="value"
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="value === pitchNotation"
-            @click="pitchNotation = value"
+          <div
+            class="text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            {{ t(value) }}
-          </Button>
-        </div>
-      </div>
+            {{ t('workspace') }}
+          </div>
 
-      <div class="mb-4">
-        <label
-          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+          <div class="mt-3 grid gap-3">
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('display') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="viewMode === 'real'"
+                  @click="viewMode = 'real'"
+                >
+                  {{ t('view_real') }}
+                </Button>
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="viewMode === 'flat'"
+                  @click="viewMode = 'flat'"
+                >
+                  {{ t('view_flat') }}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('colors') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="showColors"
+                  @click="showColors = true"
+                >
+                  {{ t('on') }}
+                </Button>
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="!showColors"
+                  @click="showColors = false"
+                >
+                  {{ t('off') }}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('scale_guides') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="showScaleGuides"
+                  @click="showScaleGuides = true"
+                >
+                  {{ t('guides_show') }}
+                </Button>
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="!showScaleGuides"
+                  @click="showScaleGuides = false"
+                >
+                  {{ t('guides_hide') }}
+                </Button>
+              </div>
+            </div>
+
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('theme') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="!isDark"
+                  @click="isDark = false"
+                >
+                  {{ t('light') }}
+                </Button>
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="isDark"
+                  @click="isDark = true"
+                >
+                  {{ t('dark') }}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          class="rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
         >
-          {{ t('language') }}
-        </label>
-        <div class="mt-1 flex w-full flex-row gap-2">
-          <Button
-            v-for="value in availableLocaleCodes"
-            :key="value"
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="value === locale"
-            @click="locale = value"
+          <div
+            class="text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            {{ t('language-' + value) }}
-          </Button>
-        </div>
-      </div>
+            {{ t('others') }}
+          </div>
 
-      <div class="mb-4">
-        <label
-          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
-        >
-          {{ t('sound') }}
-        </label>
-        <div class="mt-1 flex w-full flex-row gap-2">
-          <Button
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="soundEnabled"
-            @click="soundEnabled = true"
-          >
-            {{ t('on') }}
-          </Button>
-          <Button
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="!soundEnabled"
-            @click="soundEnabled = false"
-          >
-            {{ t('off') }}
-          </Button>
-        </div>
-      </div>
+          <div class="mt-3 grid gap-3">
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('pitch_notation') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-3 gap-2">
+                <Button
+                  v-for="value in pitchNotations"
+                  :key="value"
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="value === pitchNotation"
+                  @click="pitchNotation = value"
+                >
+                  {{ t(value) }}
+                </Button>
+              </div>
+            </div>
 
-      <div class="mb-4">
-        <label
-          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
-        >
-          {{ t('sound_mode') }}
-        </label>
-        <div class="mt-1 flex w-full flex-row gap-2">
-          <Button
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="soundMode === 'short'"
-            @click="soundMode = 'short'"
-          >
-            {{ t('sound_short') }}
-          </Button>
-          <Button
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="soundMode === 'sustain'"
-            @click="soundMode = 'sustain'"
-          >
-            {{ t('sound_sustain') }}
-          </Button>
-        </div>
-      </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('language') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-3 gap-2">
+                <Button
+                  v-for="value in availableLocaleCodes"
+                  :key="value"
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="value === locale"
+                  @click="locale = value"
+                >
+                  {{ t('language-' + value) }}
+                </Button>
+              </div>
+            </div>
 
-      <div v-if="route.path === '/game'" class="mb-4">
-        <label
-          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
-        >
-          {{ t('difficulty') }}
-        </label>
-        <div class="mt-1 flex w-full flex-row gap-2">
-          <Button
-            v-for="value in difficulties"
-            :key="value"
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="value === difficulty"
-            @click="difficulty = value"
-          >
-            {{ t('difficulty-' + value) }}
-          </Button>
-        </div>
-      </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('sound') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="soundEnabled"
+                  @click="soundEnabled = true"
+                >
+                  {{ t('on') }}
+                </Button>
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="!soundEnabled"
+                  @click="soundEnabled = false"
+                >
+                  {{ t('off') }}
+                </Button>
+              </div>
+            </div>
 
-      <div class="mt-6 flex justify-between text-sm">
-        <div>
-          <RouterLink
-            v-if="route.path !== '/game'"
-            class="me-1 underline"
-            to="/game"
-            @click="emit('close')"
-          >
-            {{ t('play_game') }}
-          </RouterLink>
-          <RouterLink
-            v-else
-            class="me-1 underline"
-            to="/"
-            @click="emit('close')"
-          >
-            {{ t('back_to_keyboard') }}
-          </RouterLink>
-        </div>
-
-        <div class="flex items-center gap-3">
-          <a
-            target="_blank"
-            href="https://github.com/nicokaiser/bandoneon/"
-            rel="noreferrer"
-          >
-            <IconGitHub class="h-4 w-4" />
-          </a>
-          <span class="text-xs text-neutral-500 dark:text-neutral-400">
-            {{ t('credits') }}
-          </span>
-        </div>
+            <div>
+              <label
+                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+              >
+                {{ t('sound_mode') }}
+              </label>
+              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="soundMode === 'short'"
+                  @click="soundMode = 'short'"
+                >
+                  {{ t('sound_short') }}
+                </Button>
+                <Button
+                  class="w-full bg-white dark:bg-neutral-900"
+                  :aria-pressed="soundMode === 'sustain'"
+                  @click="soundMode = 'sustain'"
+                >
+                  {{ t('sound_sustain') }}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
-      <AppFooter
-        class="mt-4 border-t border-neutral-200 pt-4 dark:border-neutral-700"
-      />
     </aside>
   </div>
 </template>
@@ -184,20 +250,27 @@
 <script setup lang="ts">
 import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
-import { useRoute } from 'vue-router';
-import { difficulties, pitchNotations } from '../data/index';
+import { useDark } from '../composables/useDark';
+import { pitchNotations } from '../data/index';
+import { useStore } from '../stores/main';
 import { availableLocaleCodes, useSettingsStore } from '../stores/settings';
-import AppFooter from './AppFooter.vue';
 import Button from './Button.vue';
-import IconGitHub from './icons/IconGitHub.vue';
 
 const emit = defineEmits<{ close: [] }>();
 
+const { isDark } = useDark();
+const store = useStore();
 const settings = useSettingsStore();
-const route = useRoute();
 
-const { pitchNotation, difficulty, locale, soundEnabled, soundMode } =
-  storeToRefs(settings);
+const { showColors } = storeToRefs(store);
+const {
+  pitchNotation,
+  locale,
+  soundEnabled,
+  soundMode,
+  showScaleGuides,
+  viewMode,
+} = storeToRefs(settings);
 
 const { t } = useI18n({ useScope: 'global' });
 </script>
