@@ -4,7 +4,7 @@
   >
     <div>Bandoneón.app</div>
     <div>
-      Instrument mapping adapted from the original work of
+      {{ t('mapping_credit_prefix') }}
       <a
         class="underline"
         target="_blank"
@@ -16,3 +16,9 @@
     </div>
   </footer>
 </template>
+
+<script setup lang="ts">
+import { useI18n } from 'petite-vue-i18n';
+
+const { t } = useI18n({ useScope: 'global' });
+</script>

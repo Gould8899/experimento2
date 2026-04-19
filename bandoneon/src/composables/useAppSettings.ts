@@ -1,6 +1,6 @@
 import { useI18n } from 'petite-vue-i18n';
 import { watchEffect } from 'vue';
-import { DEFAULT_INSTRUMENT, instrumentNames } from '../data/index';
+import { difficulties, pitchNotations } from '../data/index';
 import {
   isSupportedLocale,
   useSettingsStore,
@@ -8,11 +8,53 @@ import {
 } from '../stores/settings';
 
 const SETTINGS_STORAGE_KEY = 'settings';
+const viewModes = ['real', 'flat'] as const;
 
 type SettingsState = ReturnType<typeof useSettingsStore>['$state'];
+type PersistedSettings = Omit<SettingsState, 'instrument'>;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((item) => typeof item === 'string')
+  );
+}
+
+function isOneOf<T extends string>(
+  value: unknown,
+  allowedValues: readonly T[],
+): value is T {
+  return typeof value === 'string' && allowedValues.includes(value as T);
+}
+
+function sanitizeUserChords(
+  value: unknown,
+): PersistedSettings['userChords'] | null {
+  if (!isPlainObject(value)) return null;
+
+  const sanitized: PersistedSettings['userChords'] = {};
+
+  for (const side of ['left', 'right'] as const) {
+    const sideValue = value[side];
+    if (!isPlainObject(sideValue)) continue;
+
+    const sanitizedSide: Record<string, string[]> = {};
+
+    for (const [chordName, notes] of Object.entries(sideValue)) {
+      if (typeof chordName === 'string' && isStringArray(notes)) {
+        sanitizedSide[chordName] = notes;
+      }
+    }
+
+    if (Object.keys(sanitizedSide).length > 0) {
+      sanitized[side] = sanitizedSide;
+    }
+  }
+
+  return sanitized;
 }
 
 function readStoredSettings() {
@@ -20,39 +62,71 @@ function readStoredSettings() {
   return localStorage.getItem(SETTINGS_STORAGE_KEY);
 }
 
-function persistSettings(state: SettingsState) {
+function clearStoredSettings() {
   if (typeof localStorage === 'undefined') return;
-  localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(state));
+  localStorage.removeItem(SETTINGS_STORAGE_KEY);
 }
 
-function parseStoredSettings(rawSettings: string | null) {
+export function serializeSettings(state: SettingsState): PersistedSettings {
+  return {
+    locale: state.locale,
+    viewMode: state.viewMode,
+    pitchNotation: state.pitchNotation,
+    userChords: state.userChords,
+    difficulty: state.difficulty,
+    soundEnabled: state.soundEnabled,
+  };
+}
+
+function persistSettings(state: SettingsState) {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(
+    SETTINGS_STORAGE_KEY,
+    JSON.stringify(serializeSettings(state)),
+  );
+}
+
+export function parseStoredSettings(rawSettings: string | null) {
   if (!rawSettings) return null;
 
   try {
     const parsed = JSON.parse(rawSettings) as unknown;
-    if (!isPlainObject(parsed)) return null;
-
-    const restoredSettings = parsed as Partial<SettingsState> & {
-      instrument?: string;
-      locale?: string;
-    };
-
-    if (
-      restoredSettings.instrument &&
-      !instrumentNames.includes(restoredSettings.instrument)
-    ) {
-      restoredSettings.instrument = DEFAULT_INSTRUMENT;
+    if (!isPlainObject(parsed)) {
+      clearStoredSettings();
+      return null;
     }
 
-    if (
-      restoredSettings.locale &&
-      !isSupportedLocale(restoredSettings.locale)
-    ) {
-      delete restoredSettings.locale;
+    const restoredSettings = parsed as Record<string, unknown>;
+    const sanitizedSettings: Partial<PersistedSettings> = {};
+
+    if (isSupportedLocale(restoredSettings.locale as string)) {
+      sanitizedSettings.locale = restoredSettings.locale as AppLocale;
     }
 
-    return restoredSettings as Partial<SettingsState> & { locale?: AppLocale };
+    if (isOneOf(restoredSettings.viewMode, viewModes)) {
+      sanitizedSettings.viewMode = restoredSettings.viewMode;
+    }
+
+    if (isOneOf(restoredSettings.pitchNotation, pitchNotations)) {
+      sanitizedSettings.pitchNotation = restoredSettings.pitchNotation;
+    }
+
+    if (isOneOf(restoredSettings.difficulty, difficulties)) {
+      sanitizedSettings.difficulty = restoredSettings.difficulty;
+    }
+
+    if (typeof restoredSettings.soundEnabled === 'boolean') {
+      sanitizedSettings.soundEnabled = restoredSettings.soundEnabled;
+    }
+
+    const userChords = sanitizeUserChords(restoredSettings.userChords);
+    if (userChords) {
+      sanitizedSettings.userChords = userChords;
+    }
+
+    return sanitizedSettings;
   } catch {
+    clearStoredSettings();
     return null;
   }
 }
@@ -66,11 +140,12 @@ export function useAppSettings() {
     settings.$patch(restoredSettings);
   }
 
-  settings.instrument = DEFAULT_INSTRUMENT;
-
   watchEffect(() => {
     locale.value = settings.locale;
-    document.documentElement.lang = settings.locale;
+
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = settings.locale;
+    }
   });
 
   settings.$subscribe((_mutation, state) => {

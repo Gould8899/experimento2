@@ -5,68 +5,15 @@ import {
   getInstrumentKeys,
   instruments,
   normalizeChordType,
-  type NoteMatrix,
   usesFormulaChordType,
 } from '../data/index';
-import rheinische142Layout from '../data/layouts/rheinische142';
+import {
+  calculateExplicitPositions,
+  calculateFormulaPositions,
+} from '../utils/keyboardLayout';
 import { useSettingsStore } from './settings';
 
 // Central store for the currently visible side, direction and selected musical context.
-
-function calculateFormulaPositions(keys: NoteMatrix) {
-  const positions: [number, number, string][] = [];
-  let offsetX = 0;
-  let offsetY = 0;
-
-  const cols = Math.max(...keys.map((row: string[]) => row.length));
-  const rows = keys.reduce(
-    (acc: number, row: string[]) => acc + (row.length > 0 ? 1 : 0),
-    0,
-  );
-  if (cols < 9) offsetX += 39 * (9 - cols);
-  if (rows < 6) offsetY -= 32 * (6 - rows);
-  let gapX = 79;
-  if (cols >= 10) gapX = 65; // TODO: improve calculation
-
-  for (let row = 0; row < keys.length; row++) {
-    for (let col = 0; col < keys[row].length; col++) {
-      const tonal = keys[row][col];
-      if (tonal) {
-        const x = offsetX + col * gapX + 40 - (row % 2) * 40;
-        const y =
-          offsetY +
-          row * 60 +
-          (row / 2 + 1) * 15 * (1 - Math.sin(((x / 320) * Math.PI) / 2));
-        positions.push([x, y, tonal]);
-      }
-    }
-  }
-
-  return positions;
-}
-
-function calculateExplicitPositions(
-  keys: NoteMatrix,
-  side: 'right' | 'left',
-): [number, number, string][] | null {
-  const layout = rheinische142Layout[side];
-  const positions: [number, number, string][] = [];
-  let index = 0;
-
-  for (const row of keys) {
-    for (const tonal of row) {
-      if (!tonal) continue;
-
-      const coordinates = layout[index];
-      if (!coordinates) return null;
-
-      positions.push([coordinates[0], coordinates[1], tonal]);
-      index++;
-    }
-  }
-
-  return index === layout.length ? positions : null;
-}
 
 const chordIntervals: Record<string, string[]> = {
   M: ['1P', '3M', '5P'],

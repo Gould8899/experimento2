@@ -64,15 +64,16 @@ export function useSynth() {
   }
 
   function stopAll() {
-    for (const oscillator of activeOscillators) {
+    const oscillators = [...activeOscillators];
+    activeOscillators.clear();
+
+    for (const oscillator of oscillators) {
       try {
         oscillator.stop();
       } catch {
         // Ignore oscillators that are already stopping.
       }
     }
-
-    activeOscillators.clear();
   }
 
   return { playNote, stopAll };

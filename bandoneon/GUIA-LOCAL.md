@@ -31,8 +31,9 @@ npm test -- --run
 - `src/composables/`: logica compartida de teclado, modo oscuro y sincronizacion de settings.
 - `src/stores/`: estado global de la app. `main` maneja la sesion musical y `settings` las preferencias del usuario.
 - `src/data/`: datos musicales fijos, instrumentos y configuraciones auxiliares.
+- `src/utils/`: helpers puros para exportacion, layout del teclado y logica reusable facil de testear.
 - `src/locales/`: textos traducidos.
-- `test/`: pruebas automatizadas, hoy enfocadas en acordes.
+- `test/`: pruebas automatizadas de acordes, persistencia, layout, exportacion y transiciones del store.
 
 ## Flujo mental recomendado
 
@@ -40,11 +41,13 @@ npm test -- --run
 2. Si queres tocar seleccion musical, acordes o posiciones, revisa `src/stores/main.ts`.
 3. Si queres sumar un instrumento o corregir notas, entra en `src/data/instruments/`.
 4. Si queres agregar preferencias nuevas, revisa `src/stores/settings.ts` y `src/composables/useAppSettings.ts`.
+5. Si queres tocar posiciones del teclado o nombre de archivos exportados, empeza por `src/utils/keyboardLayout.ts` y `src/utils/export.ts`.
 
 ## Estado actual del proyecto
 
 - La build funciona.
 - Los tests actuales pasan.
+- El instrumento queda fijo en esta edicion; la persistencia restaura idioma, notacion, sonido, dificultad y voicings del usuario.
 - El lint depende de mantener los archivos en formato LF; si aparece ruido de `Delete CR`, corre Prettier sobre los archivos tocados.
 
 ## Proximos puntos de crecimiento

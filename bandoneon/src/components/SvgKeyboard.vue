@@ -28,7 +28,7 @@ const props = withDefaults(
 const landscapeWidth = 690;
 const landscapeHeight = 410;
 
-const svgEl = ref();
+const svgEl = ref<SVGSVGElement | null>(null);
 
 const viewBox = computed(() => {
   if (props.mode === 'flat') return `0 0 ${landscapeWidth} ${landscapeHeight}`;
@@ -48,17 +48,30 @@ const contentTransform = computed(() => {
 const download = (filename: string) => {
   // https://mybyways.com/blog/convert-svg-to-png-using-your-browser
 
+  if (!svgEl.value) return;
+
   const margin = 30;
+  const bounds = svgEl.value.getBoundingClientRect();
+  if (bounds.width === 0 || bounds.height === 0) return;
+
   const canvas = document.createElement('canvas');
-  canvas.width = (svgEl.value.getBoundingClientRect().width + margin) * 2;
-  canvas.height = (svgEl.value.getBoundingClientRect().height + margin) * 2;
+  canvas.width = (bounds.width + margin) * 2;
+  canvas.height = (bounds.height + margin) * 2;
   const data = new XMLSerializer().serializeToString(svgEl.value);
   const win = window.URL || window.webkitURL || window;
   const img = new Image();
   const blob = new Blob([data], { type: 'image/svg+xml' });
   const url = win.createObjectURL(blob);
 
-  img.addEventListener('load', () => {
+  const cleanup = () => {
+    img.removeEventListener('load', onLoad);
+    img.removeEventListener('error', onError);
+    win.revokeObjectURL(url);
+  };
+
+  const onLoad = () => {
+    cleanup();
+
     const context = canvas.getContext('2d');
     if (!context) return;
 
@@ -81,9 +94,15 @@ const download = (filename: string) => {
     a.href = uri;
     a.download = filename;
     a.click();
-    win.revokeObjectURL(uri);
     a.remove();
-  });
+  };
+
+  const onError = () => {
+    cleanup();
+  };
+
+  img.addEventListener('load', onLoad);
+  img.addEventListener('error', onError);
 
   img.src = url;
 };

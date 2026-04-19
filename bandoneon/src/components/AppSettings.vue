@@ -10,7 +10,7 @@
         <div>
           <div class="text-sm font-semibold">Bandoneón.app</div>
           <div class="text-xs text-neutral-500 dark:text-neutral-400">
-            Rheinische 142 setup, sound and language.
+            {{ t('settings_summary') }}
           </div>
         </div>
         <button
@@ -26,13 +26,13 @@
         <div
           class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
         >
-          Instrument
+          {{ t('instrument') }}
         </div>
         <div class="mt-1 text-sm font-semibold tracking-tight">
           {{ t('rheinische142') }}
         </div>
         <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-          Fixed for this edition to keep the workspace focused.
+          {{ t('instrument_fixed_focus') }}
         </div>
       </div>
 
@@ -125,7 +125,7 @@
             to="/game"
             @click="emit('close')"
           >
-            Play a game!
+            {{ t('play_game') }}
           </RouterLink>
           <RouterLink
             v-else
@@ -133,7 +133,7 @@
             to="/"
             @click="emit('close')"
           >
-            Back to keyboard
+            {{ t('back_to_keyboard') }}
           </RouterLink>
         </div>
 
@@ -146,7 +146,7 @@
             <IconGitHub class="h-4 w-4" />
           </a>
           <span class="text-xs text-neutral-500 dark:text-neutral-400">
-            Credits
+            {{ t('credits') }}
           </span>
         </div>
       </div>

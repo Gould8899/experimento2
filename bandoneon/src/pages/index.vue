@@ -7,7 +7,7 @@
         class="grid content-start gap-3 rounded-3xl border border-neutral-200 bg-white p-4 shadow-sm lg:min-h-0 lg:overflow-y-auto dark:border-neutral-800 dark:bg-neutral-900"
       >
         <OtherPanel
-          summary-title="Workspace"
+          :summary-title="t('workspace')"
           :summary-primary="selectionSummary"
           :summary-meta="`${instrumentLabel} · ${sideLabel} · ${directionLabel}`"
           :summary-secondary="`${viewModeLabel} · ${interactionHint}`"
@@ -52,7 +52,7 @@
           <div
             class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Manual
+            {{ t('manual') }}
           </div>
           <NavVariant compact />
         </section>
@@ -63,7 +63,7 @@
           <div
             class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Tonic
+            {{ t('tonic') }}
           </div>
           <NavTonic compact />
         </section>
@@ -187,6 +187,7 @@ import {
 } from '../data/index';
 import { useStore } from '../stores/main';
 import { useSettingsStore } from '../stores/settings';
+import { buildKeyboardExportFilename } from '../utils/export';
 
 // Main exploration view for the instrument: chords, scales, overlays and manual edits.
 useHead({ title: 'Bandoneon keyboard, chords and scales – Bandoneon.app' });
@@ -360,16 +361,15 @@ const scalePaths = computed(() => {
 });
 
 const onDownload = () => {
-  const chordSlug = chordType.value
-    ? chordType.value.replace(/:/g, '-').replace(/#/g, 's')
-    : '';
-  const filename =
-    `bandoneon-${instrument.value}-${side.value}-${direction.value}` +
-    (tonic.value ? '-' + tonic.value.replace('#', 's') : '') +
-    chordSlug +
-    (scaleType.value ? '-' + scaleType.value : '') +
-    (isModified.value ? '-custom' : '') +
-    '.png';
+  const filename = buildKeyboardExportFilename({
+    instrument: instrument.value,
+    side: side.value,
+    direction: direction.value,
+    tonic: tonic.value,
+    chordType: chordType.value,
+    scaleType: scaleType.value,
+    isModified: isModified.value,
+  });
 
   keyboardEl.value?.download(filename);
 };

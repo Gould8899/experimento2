@@ -8,7 +8,7 @@
           <div
             class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Training
+            {{ t('training') }}
           </div>
           <div class="mt-1 text-lg font-semibold tracking-tight">
             {{ currentPrompt }}
@@ -24,7 +24,7 @@
           <div
             class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Manual
+            {{ t('manual') }}
           </div>
           <NavVariant compact :readonly="currentPosition > 0" />
         </section>
@@ -35,7 +35,7 @@
           <div
             class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Note
+            {{ t('note') }}
           </div>
           <NavTonic compact />
         </section>
@@ -47,7 +47,7 @@
           <div
             class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Octave
+            {{ t('octave') }}
           </div>
           <div class="flex flex-wrap gap-1.5">
             <Button
@@ -69,7 +69,7 @@
           <div
             class="mb-2 text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
           >
-            Progress
+            {{ t('progress') }}
           </div>
           <Progress
             :values="[
@@ -93,7 +93,7 @@
             <div
               class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
             >
-              Current guess
+              {{ t('current_guess') }}
             </div>
             <div class="text-sm font-semibold tracking-tight">
               {{ currentPrompt }}
@@ -163,7 +163,7 @@ import { useStore } from '../stores/main';
 import { useSettingsStore } from '../stores/settings';
 
 // Training mode: randomizes visible notes and scores the user's guesses.
-useHead({ title: 'Play a game! – Bandoneon.app' });
+useHead(() => ({ title: `${t('play_game')} – Bandoneon.app` }));
 
 useKeyboard();
 
@@ -235,7 +235,7 @@ const octaves = computed(() => {
     ),
   ]
     .map((item) => Number.parseInt(item, 10))
-    .sort();
+    .sort((left, right) => left - right);
 });
 
 function shufflePositions<T>(items: T[]) {
