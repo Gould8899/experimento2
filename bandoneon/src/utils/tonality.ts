@@ -6,7 +6,7 @@ export type ResolvedTonality = {
     tonic: string;
     alteration: number;
     keySignature: string;
-    scale: string[];
+    scale: readonly string[];
 };
 
 const tonalChordModes: Partial<Record<string, TonalityMode>> = {
