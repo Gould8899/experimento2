@@ -117,12 +117,14 @@ export const notes = [
 ];
 
 export const scaleTypes: ScaleTypeOption[] = [
-  { value: 'chromatic', label: 'chromatic' },
-  { value: 'whole tone', label: 'whole_tone' },
-  { value: 'diminished', label: 'whole_half_diminished' },
-  { value: 'augmented', label: 'augmented_tone_semitone' },
+  { value: 'white-keys', label: 'white_keys' },
+  { value: 'black-keys', label: 'black_keys' },
   { value: 'major', label: 'major' },
   { value: 'minor', label: 'minor' },
+  { value: 'chromatic', label: 'chromatic' },
+  { value: 'whole tone', label: 'whole_tone' },
+  { value: 'diminished', label: 'diminished' },
+  { value: 'augmented', label: 'augmented' },
 ];
 
 export const chordTypes: HarmonicTypeOption[] = [
@@ -135,11 +137,15 @@ export const chordTypes: HarmonicTypeOption[] = [
   { value: 'M7', text: 'M7' },
 ];
 
+// Chord buttons stay hidden in the current edition while the harmonic model
+// remains available for arpeggios and future reactivation.
+export const chordUiEnabled = false;
+
 export const arpeggioTypes: HarmonicTypeOption[] = [
-  { value: 'arp:M', label: 'arpeggio_major' },
-  { value: 'arp:m', label: 'arpeggio_minor' },
-  { value: 'arp:aug', label: 'arpeggio_augmented' },
-  { value: 'arp:dim', label: 'arpeggio_diminished' },
+  { value: 'arp:M', label: 'major' },
+  { value: 'arp:m', label: 'minor' },
+  { value: 'arp:aug', label: 'augmented' },
+  { value: 'arp:dim', label: 'diminished' },
 ];
 
 export const harmonicTypes: HarmonicTypeOption[] = [

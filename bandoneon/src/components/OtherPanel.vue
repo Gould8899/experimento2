@@ -52,6 +52,126 @@
         <label
           class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
         >
+          {{ t('display') }}
+        </label>
+        <div class="mt-1 grid grid-cols-2 gap-2">
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="viewMode === 'real'"
+            @click="viewMode = 'real'"
+          >
+            {{ t('view_real') }}
+          </Button>
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="viewMode === 'flat'"
+            @click="viewMode = 'flat'"
+          >
+            {{ t('view_flat') }}
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
+          {{ t('colors') }}
+        </label>
+        <div class="mt-1 grid grid-cols-2 gap-2">
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="showColors"
+            @click="showColors = true"
+          >
+            {{ t('on') }}
+          </Button>
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="!showColors"
+            @click="showColors = false"
+          >
+            {{ t('off') }}
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
+          {{ t('scale_guides') }}
+        </label>
+        <div class="mt-1 grid grid-cols-2 gap-2">
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="showScaleGuides"
+            @click="setScaleGuidesVisibility(true)"
+          >
+            {{ t('guides_show') }}
+          </Button>
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="!showScaleGuides"
+            @click="setScaleGuidesVisibility(false)"
+          >
+            {{ t('guides_hide') }}
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
+          {{ t('sound') }}
+        </label>
+        <div class="mt-1 grid grid-cols-2 gap-2">
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="soundEnabled"
+            @click="soundEnabled = true"
+          >
+            {{ t('on') }}
+          </Button>
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="!soundEnabled"
+            @click="soundEnabled = false"
+          >
+            {{ t('off') }}
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
+          {{ t('sound_mode') }}
+        </label>
+        <div class="mt-1 grid grid-cols-2 gap-2">
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="soundMode === 'short'"
+            @click="soundMode = 'short'"
+          >
+            {{ t('sound_short') }}
+          </Button>
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="soundMode === 'sustain'"
+            @click="soundMode = 'sustain'"
+          >
+            {{ t('sound_sustain') }}
+          </Button>
+        </div>
+      </div>
+
+      <div>
+        <label
+          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
           {{ t('theme') }}
         </label>
         <div class="mt-1 grid grid-cols-2 gap-2">
@@ -110,30 +230,6 @@
         </div>
       </div>
 
-      <div>
-        <label
-          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
-        >
-          {{ t('sound') }}
-        </label>
-        <div class="mt-1 grid grid-cols-2 gap-2">
-          <Button
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="soundEnabled"
-            @click="soundEnabled = true"
-          >
-            {{ t('on') }}
-          </Button>
-          <Button
-            class="w-full bg-white dark:bg-neutral-900"
-            :aria-pressed="!soundEnabled"
-            @click="soundEnabled = false"
-          >
-            {{ t('off') }}
-          </Button>
-        </div>
-      </div>
-
       <div v-if="route.path === '/game'">
         <label
           class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
@@ -167,22 +263,46 @@ import { ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { useDark } from '../composables/useDark';
 import { difficulties, pitchNotations } from '../data/index';
+import { useStore } from '../stores/main';
 import { availableLocaleCodes, useSettingsStore } from '../stores/settings';
 import AppFooter from './AppFooter.vue';
 import Button from './Button.vue';
 
-defineProps<{
-  summaryTitle?: string;
-  summaryPrimary?: string;
-  summaryMeta?: string;
-  summarySecondary?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    summaryTitle?: string;
+    summaryPrimary?: string;
+    summaryMeta?: string;
+    summarySecondary?: string;
+    defaultOpen?: boolean;
+  }>(),
+  {
+    summaryTitle: '',
+    summaryPrimary: '',
+    summaryMeta: '',
+    summarySecondary: '',
+    defaultOpen: false,
+  },
+);
 
 const { t } = useI18n({ useScope: 'global' });
 const { isDark } = useDark();
 const route = useRoute();
+const store = useStore();
 const settings = useSettingsStore();
-const { pitchNotation, difficulty, locale, soundEnabled } =
-  storeToRefs(settings);
-const isOpen = ref(false);
+const { showColors } = storeToRefs(store);
+const {
+  pitchNotation,
+  difficulty,
+  locale,
+  soundEnabled,
+  soundMode,
+  showScaleGuides,
+  viewMode,
+} = storeToRefs(settings);
+const isOpen = ref(props.defaultOpen);
+
+function setScaleGuidesVisibility(visible: boolean) {
+  showScaleGuides.value = visible;
+}
 </script>

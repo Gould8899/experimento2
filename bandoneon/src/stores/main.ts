@@ -11,6 +11,7 @@ import {
   calculateExplicitPositions,
   calculateFormulaPositions,
 } from '../utils/keyboardLayout';
+import { scaleTypeUsesTonic } from '../utils/scaleType';
 import { useSettingsStore } from './settings';
 
 // Central store for the currently visible side, direction and selected musical context.
@@ -20,12 +21,19 @@ const chordIntervals: Record<string, string[]> = {
   m: ['1P', '3m', '5P'],
   aug: ['1P', '3M', '5A'],
   dim: ['1P', '3m', '5d'],
+  'arp:dim': ['1P', '3m', '5d', '7d'],
   '7': ['1P', '3M', '5P', '7m'],
   m7: ['1P', '3m', '5P', '7m'],
   M7: ['1P', '3M', '5P', '7M'],
 };
 
 function buildChordFormula(tonic: string, chordType: string | null) {
+  if (chordType && chordIntervals[chordType]) {
+    return chordIntervals[chordType].map((interval) =>
+      Note.simplify(Note.transpose(`${tonic}4`, interval)),
+    );
+  }
+
   const normalizedChordType = normalizeChordType(chordType);
   if (!normalizedChordType) return [];
 
@@ -51,9 +59,9 @@ export const useStore = defineStore('main', {
     showEnharmonics: false,
     side: 'right' as 'right' | 'left',
     direction: 'open' as 'open' | 'close',
-    tonic: 'C' as null | string,
+    tonic: null as null | string,
     chordType: null as null | string,
-    scaleType: 'chromatic' as null | string,
+    scaleType: null as null | string,
     resetNonce: 0,
   }),
 
@@ -142,7 +150,7 @@ export const useStore = defineStore('main', {
 
     setScaleType(scaleType: string | null) {
       if (this.chordType) this.chordType = null;
-      if (!this.tonic) this.tonic = 'C';
+      if (!this.tonic && scaleTypeUsesTonic(scaleType)) this.tonic = 'C';
       this.scaleType = scaleType;
     },
 
@@ -155,9 +163,9 @@ export const useStore = defineStore('main', {
     resetSearch() {
       this.side = 'right';
       this.direction = 'open';
-      this.tonic = 'C';
+      this.tonic = null;
       this.chordType = null;
-      this.scaleType = 'chromatic';
+      this.scaleType = null;
       this.showEnharmonics = false;
       this.showColors = true;
       this.resetNonce += 1;

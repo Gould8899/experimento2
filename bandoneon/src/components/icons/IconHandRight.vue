@@ -1,15 +1,12 @@
 <template>
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <rect x="14.5" y="3.8" width="1.9" height="6.7" rx="0.95" />
+    <rect x="11.95" y="3" width="1.9" height="7.5" rx="0.95" />
+    <rect x="9.4" y="3.4" width="1.9" height="7.1" rx="0.95" />
+    <rect x="6.85" y="4.2" width="1.9" height="6.3" rx="0.95" />
+    <rect x="6.1" y="10" width="10.8" height="9" rx="3.2" />
     <path
-      d="M13.8 19.8h2.1c1.8 0 3.3-1.5 3.3-3.3v-2.8c0-.8-.6-1.4-1.4-1.4h-1.2V6.7c0-.9-.7-1.6-1.6-1.6s-1.6.7-1.6 1.6v4.5h-.8V5.3c0-.9-.7-1.6-1.6-1.6S9.4 4.4 9.4 5.3v5.9h-.8V6.4c0-.9-.7-1.6-1.6-1.6S5.4 5.5 5.4 6.4v6.3c0 3.9 2.6 7.1 6.4 7.1h2Z"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <path d="M15.2 19.2h4.6" stroke-linecap="round" stroke-linejoin="round" />
-    <path
-      d="m18.2 17.5 2 1.7-2 1.7"
-      stroke-linecap="round"
-      stroke-linejoin="round"
+      d="M16.6 11.1h3.3c1.38 0 2.5 1.12 2.5 2.5v.5c0 1.38-1.12 2.5-2.5 2.5h-2.6v-5.5Z"
     />
   </svg>
 </template>

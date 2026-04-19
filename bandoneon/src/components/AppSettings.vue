@@ -98,6 +98,30 @@
         </div>
       </div>
 
+      <div class="mb-4">
+        <label
+          class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
+        >
+          {{ t('sound_mode') }}
+        </label>
+        <div class="mt-1 flex w-full flex-row gap-2">
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="soundMode === 'short'"
+            @click="soundMode = 'short'"
+          >
+            {{ t('sound_short') }}
+          </Button>
+          <Button
+            class="w-full bg-white dark:bg-neutral-900"
+            :aria-pressed="soundMode === 'sustain'"
+            @click="soundMode = 'sustain'"
+          >
+            {{ t('sound_sustain') }}
+          </Button>
+        </div>
+      </div>
+
       <div v-if="route.path === '/game'" class="mb-4">
         <label
           class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
@@ -172,7 +196,7 @@ const emit = defineEmits<{ close: [] }>();
 const settings = useSettingsStore();
 const route = useRoute();
 
-const { pitchNotation, difficulty, locale, soundEnabled } =
+const { pitchNotation, difficulty, locale, soundEnabled, soundMode } =
   storeToRefs(settings);
 
 const { t } = useI18n({ useScope: 'global' });

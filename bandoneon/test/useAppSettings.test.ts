@@ -17,6 +17,8 @@ describe('useAppSettings persistence helpers', () => {
         pitchNotation: 'solfege',
         difficulty: 'easy',
         soundEnabled: false,
+        soundMode: 'sustain',
+        showScaleGuides: false,
         userChords: {
           right: {
             CM: ['C4', 'E4', 'G4'],
@@ -36,6 +38,8 @@ describe('useAppSettings persistence helpers', () => {
       pitchNotation: 'solfege',
       difficulty: 'easy',
       soundEnabled: false,
+      soundMode: 'sustain',
+      showScaleGuides: false,
       userChords: {
         left: {
           Am: ['A2', 'C3', 'E3'],
@@ -56,6 +60,8 @@ describe('useAppSettings persistence helpers', () => {
           pitchNotation: 'latin',
           difficulty: 'hard',
           soundEnabled: 'yes',
+          soundMode: 'drone',
+          showScaleGuides: 'sometimes',
           userChords: 'not-an-object',
         }),
       ),
@@ -77,6 +83,8 @@ describe('useAppSettings persistence helpers', () => {
       },
       difficulty: 'medium',
       soundEnabled: true,
+      soundMode: 'short',
+      showScaleGuides: true,
     } as SettingsState;
 
     expect(serializeSettings(state)).toEqual({
@@ -90,6 +98,8 @@ describe('useAppSettings persistence helpers', () => {
       },
       difficulty: 'medium',
       soundEnabled: true,
+      soundMode: 'short',
+      showScaleGuides: true,
     });
   });
 });

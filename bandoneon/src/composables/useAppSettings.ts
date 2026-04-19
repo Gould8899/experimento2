@@ -9,6 +9,7 @@ import {
 
 const SETTINGS_STORAGE_KEY = 'settings';
 const viewModes = ['real', 'flat'] as const;
+const soundModes = ['short', 'sustain'] as const;
 
 type SettingsState = ReturnType<typeof useSettingsStore>['$state'];
 type PersistedSettings = Omit<SettingsState, 'instrument'>;
@@ -75,6 +76,8 @@ export function serializeSettings(state: SettingsState): PersistedSettings {
     userChords: state.userChords,
     difficulty: state.difficulty,
     soundEnabled: state.soundEnabled,
+    soundMode: state.soundMode,
+    showScaleGuides: state.showScaleGuides,
   };
 }
 
@@ -117,6 +120,14 @@ export function parseStoredSettings(rawSettings: string | null) {
 
     if (typeof restoredSettings.soundEnabled === 'boolean') {
       sanitizedSettings.soundEnabled = restoredSettings.soundEnabled;
+    }
+
+    if (isOneOf(restoredSettings.soundMode, soundModes)) {
+      sanitizedSettings.soundMode = restoredSettings.soundMode;
+    }
+
+    if (typeof restoredSettings.showScaleGuides === 'boolean') {
+      sanitizedSettings.showScaleGuides = restoredSettings.showScaleGuides;
     }
 
     const userChords = sanitizeUserChords(restoredSettings.userChords);

@@ -5,6 +5,15 @@
 </template>
 
 <style>
+.buttongroup {
+  display: flex;
+  width: 100%;
+}
+
+.buttongroup > * {
+  flex: 1 1 0;
+}
+
 .buttongroup button:not(:last-child),
 .buttongroup button:not(:last-child):hover {
   border-right: 0 none;

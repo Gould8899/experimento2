@@ -1,10 +1,23 @@
 <template>
   <g
+    data-bandoneon-key="true"
     :class="{ selected, muted }"
-    @pointerdown="!muted && emit('start')"
-    @click.prevent="!muted && emit('click')"
-    @pointerenter="!muted && emit('hover')"
+    :style="groupStyle"
+    @pointerdown="emit('start')"
+    @click.prevent="emit('click')"
+    @pointerenter="emit('hover')"
   >
+    <circle
+      v-if="focused"
+      :cx="x + 29"
+      :cy="y + 29"
+      r="31.5"
+      fill="none"
+      :stroke="focusStroke"
+      stroke-width="2"
+      stroke-dasharray="3 4"
+      opacity="0.85"
+    />
     <circle
       :cx="x + 29"
       :cy="y + 29"
@@ -50,6 +63,11 @@ const props = withDefaults(
     tonal: string;
     selected?: boolean;
     muted?: boolean;
+    focused?: boolean;
+    playable?: boolean;
+    interactiveMode?: 'paint-on';
+    gestureActive?: boolean;
+    gestureMode?: 'paint' | 'erase';
     label?: string | null;
     color?: string;
     labelRotation?: number;
@@ -57,6 +75,11 @@ const props = withDefaults(
   {
     selected: false,
     muted: false,
+    focused: false,
+    playable: true,
+    interactiveMode: 'paint-on',
+    gestureActive: false,
+    gestureMode: 'paint',
     label: null,
     color: undefined,
     labelRotation: 0,
@@ -100,6 +123,21 @@ const stroke = computed(() => {
   if (props.muted) return '#cbd5e1';
   return props.selected ? 'currentColor' : '#000';
 });
+
+const focusStroke = computed(() => {
+  if (props.selected) return 'currentColor';
+  if (props.muted) return '#94a3b8';
+  return props.gestureMode === 'erase' ? '#f59e0b' : '#10b981';
+});
+
+const groupStyle = computed(() => ({
+  cursor: !props.playable
+    ? 'default'
+    : props.gestureActive
+      ? 'grabbing'
+      : 'crosshair',
+  opacity: props.playable || props.selected ? 1 : 0.58,
+}));
 
 const textTransform = computed(() => {
   if (!props.labelRotation) return undefined;
