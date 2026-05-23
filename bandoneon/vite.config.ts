@@ -5,8 +5,19 @@ import VueRouter from 'unplugin-vue-router/vite';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-/** @type {import('vite').UserConfig} */
-export default defineConfig({
+function resolveGithubPagesBase() {
+  const repository = process.env.GITHUB_REPOSITORY;
+  if (!repository) return '/';
+
+  const [, repoName] = repository.split('/');
+  if (!repoName || repoName.endsWith('.github.io')) return '/';
+
+  return `/${repoName}/`;
+}
+
+export default defineConfig(() => ({
+  base:
+    process.env.GITHUB_ACTIONS === 'true' ? resolveGithubPagesBase() : '/',
   plugins: [
     tailwindcss(),
     VueRouter(),
@@ -47,4 +58,4 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));

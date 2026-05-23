@@ -21,6 +21,19 @@ npm run lint
 npm test -- --run
 ```
 
+## Publicarlo en GitHub Pages
+
+1. Hace commit y push de estos cambios a la rama `main` del repo `Gould8899/experimento2`.
+2. En GitHub entra a `Settings > Pages` y en `Build and deployment` elegi `GitHub Actions`.
+3. GitHub va a correr el workflow `.github/workflows/deploy-pages.yml` en cada push a `main` y va a publicar el contenido de `dist/`.
+4. La URL esperada queda en `https://gould8899.github.io/experimento2/`.
+
+Notas:
+
+- La build ya deja listo `dist/404.html` para que el router SPA no falle al recargar rutas en GitHub Pages.
+- La build tambien crea `dist/.nojekyll`, necesario porque Vite genera assets que empiezan con `_`.
+- Si en algun momento cambias la rama de despliegue, actualiza el campo `branches` del workflow.
+
 ## Como esta armado
 
 - `src/main.ts`: punto de entrada. Crea Vue, router, Pinia, i18n y head manager.

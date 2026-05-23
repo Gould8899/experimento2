@@ -6,13 +6,7 @@
     <aside
       class="absolute inset-x-3 top-3 max-h-[calc(100vh-1.5rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-4 shadow-2xl sm:inset-x-auto sm:top-3 sm:right-3 sm:w-[34rem] lg:w-[38rem] dark:border-neutral-700 dark:bg-neutral-900"
     >
-      <div class="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <div class="text-sm font-semibold">Bandoneon Workspace</div>
-          <div class="text-xs text-neutral-500 dark:text-neutral-400">
-            {{ t('settings_summary') }}
-          </div>
-        </div>
+      <div class="mb-4 flex items-center justify-end gap-4">
         <button
           class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-lg transition hover:bg-neutral-100 dark:hover:bg-neutral-800"
           type="button"
@@ -20,20 +14,6 @@
         >
           ×
         </button>
-      </div>
-
-      <div class="mb-4 rounded-2xl bg-neutral-100 p-3 dark:bg-neutral-800/80">
-        <div
-          class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
-        >
-          {{ t('instrument') }}
-        </div>
-        <div class="mt-1 text-sm font-semibold tracking-tight">
-          {{ t('rheinische142') }}
-        </div>
-        <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
-          {{ t('instrument_fixed_focus') }}
-        </div>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
@@ -91,30 +71,6 @@
                   @click="showColors = false"
                 >
                   {{ t('off') }}
-                </Button>
-              </div>
-            </div>
-
-            <div>
-              <label
-                class="block text-xs font-medium text-neutral-500 dark:text-neutral-400"
-              >
-                {{ t('scale_guides') }}
-              </label>
-              <div class="mt-1 grid w-full min-w-0 grid-cols-2 gap-2">
-                <Button
-                  class="w-full bg-white dark:bg-neutral-900"
-                  :aria-pressed="showScaleGuides"
-                  @click="showScaleGuides = true"
-                >
-                  {{ t('guides_show') }}
-                </Button>
-                <Button
-                  class="w-full bg-white dark:bg-neutral-900"
-                  :aria-pressed="!showScaleGuides"
-                  @click="showScaleGuides = false"
-                >
-                  {{ t('guides_hide') }}
                 </Button>
               </div>
             </div>
@@ -263,14 +219,8 @@ const store = useStore();
 const settings = useSettingsStore();
 
 const { showColors } = storeToRefs(store);
-const {
-  pitchNotation,
-  locale,
-  soundEnabled,
-  soundMode,
-  showScaleGuides,
-  viewMode,
-} = storeToRefs(settings);
+const { pitchNotation, locale, soundEnabled, soundMode, viewMode } =
+  storeToRefs(settings);
 
 const { t } = useI18n({ useScope: 'global' });
 </script>

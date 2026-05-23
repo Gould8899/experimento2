@@ -32,7 +32,13 @@ export function useDark() {
   });
 
   const system = computed(() => (preferredDark.value ? 'dark' : 'light'));
-  const mode = ref(localStorage.getItem('color-scheme') || 'auto');
+
+  // Guard for environments where localStorage may not be available (SSR, unit tests).
+  const storedColorScheme =
+    typeof localStorage !== 'undefined'
+      ? localStorage.getItem('color-scheme')
+      : null;
+  const mode = ref(storedColorScheme || 'auto');
 
   const isDark = computed<boolean>({
     get() {

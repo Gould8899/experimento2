@@ -16,6 +16,15 @@ import { useSettingsStore } from './settings';
 
 // Central store for the currently visible side, direction and selected musical context.
 
+// Interval formulas used to build chord notes on-the-fly for voicings that are
+// not stored in the chord data table (arpeggios, augmented, and any future
+// formula-driven chord types).
+// NOTE: the same intervals also exist in utils/tonality.ts (tonalChordIntervals)
+// for key-signature resolution.  Both copies are intentional: tonality.ts drives
+// staff key-signature logic while this copy drives note highlighting on the keys.
+// If the interval definitions ever diverge they should be extracted to a shared
+// constant in data/index.ts.
+
 const chordIntervals: Record<string, string[]> = {
   M: ['1P', '3M', '5P'],
   m: ['1P', '3m', '5P'],

@@ -2,6 +2,10 @@ import { Note } from 'tonal';
 import { scientificToHelmholtzNotation } from './helmholtz';
 import { scientificToSolfegeNotation } from './solfege';
 
+// Helpers for converting internal scientific pitch names to the notation
+// the user has selected (scientific, Helmholtz, or solfege) and for
+// normalising enharmonic spellings to the sharp/flat preference.
+
 type PitchNotation = 'scientific' | 'helmholtz' | 'solfege';
 
 export function resolveStaffDisplayNote(note: string, preferFlats: boolean) {

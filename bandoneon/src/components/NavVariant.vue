@@ -1,83 +1,98 @@
 <template>
   <div :class="['print:hidden', compact ? 'grid gap-2.5' : 'mb-4 grid gap-3']">
+    <!-- Hand selector: sky-blue accent for active state -->
     <div class="grid gap-1.5">
       <div
-        class="text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase dark:text-neutral-200"
+        class="text-[10px] font-semibold tracking-[0.12em] text-neutral-500 uppercase dark:text-neutral-400"
       >
         {{ t('hand') }}
       </div>
       <div class="grid grid-cols-2 gap-2">
-        <Button
+        <button
           v-for="item in handOptions"
           :key="item.value"
+          type="button"
           :aria-label="t(item.value)"
           :aria-pressed="side === item.value"
           :disabled="readonly"
-          :class="
-            compact
-              ? 'flex min-h-13 w-full flex-col items-center justify-center gap-1 px-1.5 py-2 text-center'
-              : 'flex min-h-16 w-full flex-col items-center justify-center gap-1.25 px-2 py-2.5 text-center'
-          "
-          :title="t(item.value)"
+          :title="t(item.value + '_desc')"
+          :class="[
+            'flex w-full flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-center transition-colors select-none disabled:cursor-not-allowed',
+            compact ? 'min-h-[52px]' : 'min-h-[64px]',
+            side === item.value
+              ? 'border-sky-600 bg-sky-600 text-white dark:border-sky-500 dark:bg-sky-500'
+              : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 disabled:border-neutral-200 disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:disabled:border-neutral-800 dark:disabled:text-neutral-600',
+          ]"
           @click="side = item.value"
         >
+          <component
+            :is="item.icon"
+            :class="compact ? 'h-6 w-6 shrink-0' : 'h-7 w-7 shrink-0'"
+          />
           <span
-            :class="[
-              'inline-flex shrink-0 items-center justify-center rounded-xl border border-current/15 bg-black/5 dark:bg-white/8',
-              compact ? 'h-9.5 w-9.5' : 'h-11.5 w-11.5',
-            ]"
-          >
-            <component
-              :is="item.icon"
-              :class="compact ? 'h-6.5 w-6.5' : 'h-8 w-8'"
-            />
-          </span>
-          <span
-            class="block text-[9px] leading-none font-bold tracking-[0.14em] uppercase"
+            class="block text-[9px] leading-none font-bold tracking-[0.12em] uppercase"
           >
             {{ t(item.value) }}
           </span>
-        </Button>
+          <span
+            :class="[
+              'block truncate text-[8px] leading-tight font-medium',
+              side === item.value
+                ? 'opacity-75'
+                : 'text-neutral-500 dark:text-neutral-400',
+            ]"
+          >
+            {{ t(item.value + '_desc') }}
+          </span>
+        </button>
       </div>
     </div>
+
+    <!-- Bellows direction selector: amber accent for active state -->
     <div class="grid gap-1.5">
       <div
-        class="text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase dark:text-neutral-200"
+        class="text-[10px] font-semibold tracking-[0.12em] text-neutral-500 uppercase dark:text-neutral-400"
       >
         {{ t('bellows') }}
       </div>
       <div class="grid grid-cols-2 gap-2">
-        <Button
+        <button
           v-for="item in directionOptions"
           :key="item.value"
+          type="button"
           :aria-label="t(item.value)"
           :aria-pressed="direction === item.value"
           :disabled="readonly"
-          :class="
-            compact
-              ? 'flex min-h-13 w-full flex-col items-center justify-center gap-1 px-1.5 py-2 text-center'
-              : 'flex min-h-16 w-full flex-col items-center justify-center gap-1.25 px-2 py-2.5 text-center'
-          "
-          :title="t(item.value)"
+          :title="t(item.value + '_desc')"
+          :class="[
+            'flex w-full flex-col items-center justify-center gap-1 rounded-xl border px-1.5 py-2 text-center transition-colors select-none disabled:cursor-not-allowed',
+            compact ? 'min-h-[52px]' : 'min-h-[64px]',
+            direction === item.value
+              ? 'border-amber-500 bg-amber-500 text-white dark:border-amber-400 dark:bg-amber-400 dark:text-neutral-900'
+              : 'border-neutral-300 bg-white text-neutral-700 hover:bg-neutral-50 disabled:border-neutral-200 disabled:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:disabled:border-neutral-800 dark:disabled:text-neutral-600',
+          ]"
           @click="direction = item.value"
         >
+          <component
+            :is="item.icon"
+            :class="compact ? 'h-6 w-6 shrink-0' : 'h-7 w-7 shrink-0'"
+          />
           <span
-            :class="[
-              'inline-flex shrink-0 items-center justify-center rounded-xl border border-current/15 bg-black/5 dark:bg-white/8',
-              compact ? 'h-9.5 w-9.5' : 'h-11.5 w-11.5',
-            ]"
-          >
-            <component
-              :is="item.icon"
-              :class="compact ? 'h-6.5 w-6.5' : 'h-8 w-8'"
-            />
-          </span>
-          <span
-            class="block text-[9px] leading-none font-bold tracking-[0.14em] uppercase"
+            class="block text-[9px] leading-none font-bold tracking-[0.12em] uppercase"
           >
             {{ t(item.value) }}
           </span>
-        </Button>
+          <span
+            :class="[
+              'block truncate text-[8px] leading-tight font-medium',
+              direction === item.value
+                ? 'opacity-75'
+                : 'text-neutral-500 dark:text-neutral-400',
+            ]"
+          >
+            {{ t(item.value + '_desc') }}
+          </span>
+        </button>
       </div>
     </div>
   </div>
@@ -87,7 +102,6 @@
 import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useStore } from '../stores/main';
-import Button from './Button.vue';
 import IconBellowsClose from './icons/IconBellowsClose.vue';
 import IconBellowsOpen from './icons/IconBellowsOpen.vue';
 import IconHandLeft from './icons/IconHandLeft.vue';

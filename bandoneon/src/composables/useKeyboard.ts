@@ -3,6 +3,17 @@ import { chordUiEnabled } from '../data/index';
 import { useStore } from '../stores/main';
 
 // Global keyboard shortcuts shared by the main keyboard view and the training game.
+//
+// Shortcut map
+// ────────────────────────────────────────────────────────
+//  l / L   →  left side, open / close bellows
+//  r / R   →  right side, open / close bellows
+//  c–b     →  set tonic (lowercase = natural: C D E F G A B)
+//  C D F G A  →  set tonic to the sharp enharmonic (C# D# F# G# A#)
+//             (E# and B# are omitted — they are enharmonic to F and C)
+//  M / m / 7  →  set chord type (only active when chordUiEnabled is true)
+//  Escape  →  clear the search selection, or call onEscape if provided
+// ────────────────────────────────────────────────────────
 export function useKeyboard(options?: { onEscape?: () => void }) {
   const store = useStore();
 

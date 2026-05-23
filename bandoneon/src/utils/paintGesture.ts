@@ -1,3 +1,15 @@
+// A "paint gesture" lets the user drag a pointer across keyboard buttons to
+// select (paint) or deselect (erase) notes in a single continuous motion.
+//
+// Key design decisions:
+//   - The gesture starts in either "paint" or "erase" mode, determined by
+//     whether the first touched note was already selected or not.
+//   - A trace array records every note visited in order so that backtracking
+//     (hovering back over a note already in the trace) undoes the intermediate
+//     steps instead of toggling the note a second time.
+//   - All state transitions return a new object; the original selection and
+//     trace are never mutated directly.
+
 export type NoteSelection = Record<string, boolean>;
 export type PaintGestureMode = 'paint' | 'erase';
 

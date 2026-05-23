@@ -2,6 +2,18 @@ import { Note } from 'tonal';
 import { getScaleStaffNotes } from './scaleType';
 import { getChordStaffNotes } from './tonality';
 
+// Determines what notes the staff display should show at any given moment.
+// The source field lets callers know why those notes were chosen, which is
+// useful for deciding how to render or animate the staff.
+//
+// Priority order (first match wins):
+//   'gesture'  — pointer is being dragged across keys right now
+//   'recent'   — notes were played via synth in the last interaction
+//   'manual'   — user hand-painted a custom selection
+//   'voicing'  — a chord is active (either from the data table or from a formula)
+//   'scale'    — a scale type is selected (with or without tonic)
+//   'tonic'    — only a root note is chosen, no chord/scale yet
+//   'idle'     — nothing selected; the staff should be empty
 type StaffStateSource =
   | 'gesture'
   | 'manual'

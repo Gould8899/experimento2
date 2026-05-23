@@ -274,7 +274,7 @@ function whiteKeyStyle(key: PianoKey) {
       background: '#000000',
       borderColor: '#000000',
       boxShadow:
-        'inset 0 -18px 0 rgba(0, 0, 0, 0.98), inset 0 0 0 999px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255,255,255,0.03)',
+        'inset 0 -18px 0 rgba(0, 0, 0, 0.98), inset 0 0 0 999px rgba(0, 0, 0, 0.9)',
       color: '#000000',
       opacity: 1,
     };
@@ -296,9 +296,11 @@ function whiteKeyStyle(key: PianoKey) {
       ? withAlpha(noteColor, 'f2')
       : key.muted
         ? '#71717a'
-        : playable
-          ? withAlpha(noteColor, '88')
-          : '#52525b',
+        : !key.available
+          ? 'transparent'
+          : playable
+            ? withAlpha(noteColor, '88')
+            : '#52525b',
     boxShadow: key.active
       ? `inset 0 -14px 0 ${withAlpha(noteColor, 'd9')}, 0 0 0 2px rgba(255,255,255,0.92)`
       : props.gestureNote === key.note

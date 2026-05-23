@@ -82,9 +82,9 @@ export function getInstrumentNotesForSide(
 export const instrumentFullNoteRange =
   getAllInstrumentNotes(DEFAULT_INSTRUMENT);
 
-export const difficulties = <Array<'easy' | 'medium'>>['easy', 'medium'];
+export const difficulties: Array<'easy' | 'medium'> = ['easy', 'medium'];
 
-export const pitchNotations = <Array<'scientific' | 'helmholtz' | 'solfege'>>[
+export const pitchNotations: Array<'scientific' | 'helmholtz' | 'solfege'> = [
   'scientific',
   'helmholtz',
   'solfege',

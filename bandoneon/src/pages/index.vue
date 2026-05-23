@@ -35,25 +35,9 @@
         <section
           class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
         >
-          <div class="grid gap-2.5">
-            <div>
-              <div
-                class="text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-neutral-400"
-              >
-                {{ t('open_settings') }}
-              </div>
-              <div
-                class="mt-0.5 truncate text-[11px] text-neutral-500 dark:text-neutral-400"
-                :title="t('settings_summary')"
-              >
-                {{ t('settings_summary') }}
-              </div>
-            </div>
-
-            <Button class="w-full" @click="showSettings = true">
-              {{ t('open_settings') }}
-            </Button>
-          </div>
+          <Button class="w-full" @click="showSettings = true">
+            {{ t('open_settings') }}
+          </Button>
         </section>
       </aside>
 
@@ -68,7 +52,7 @@
             class="grid min-h-0 gap-2.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.98fr)] 2xl:grid-cols-[minmax(0,1.16fr)_minmax(22rem,1fr)]"
           >
             <div
-              class="flex min-h-[20rem] min-w-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-100/80 px-1 py-2 sm:min-h-[24rem] lg:min-h-[26rem] xl:min-h-[28rem] 2xl:min-h-[34rem] dark:bg-neutral-800/40"
+              class="flex min-h-[16rem] min-w-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-100/80 px-1 py-2 sm:min-h-[20rem] lg:min-h-[22rem] xl:min-h-[24rem] 2xl:min-h-[28rem] dark:bg-neutral-800/40"
             >
               <div
                 class="flex h-full min-h-0 w-full items-center justify-center"
