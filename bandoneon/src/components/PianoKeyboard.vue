@@ -2,15 +2,12 @@
   <div
     :class="[
       'rounded-2xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900',
-      compact ? 'p-2' : 'p-3',
+      compact ? 'p-1.5' : 'p-3',
     ]"
   >
     <div
-      :class="
-        compact
-          ? 'mb-2 flex items-center justify-between gap-3'
-          : 'mb-3 flex items-center justify-between gap-3'
-      "
+      v-if="!compact"
+      class="mb-3 flex items-center justify-between gap-3"
     >
       <div>
         <div
@@ -50,11 +47,6 @@
             {{ t('out_of_scale') }}
           </span>
         </div>
-      </div>
-      <div
-        class="text-right text-[11px] text-neutral-500 dark:text-neutral-400"
-      >
-        <div>{{ activeNoteCount }} {{ t('manual_notes') }}</div>
       </div>
     </div>
 
@@ -155,7 +147,7 @@ type PianoKey = {
 };
 
 const props = defineProps<{
-  subtitle: string;
+  subtitle?: string;
   notes: string[];
   interactionMode?: 'paint-on';
   gestureActive?: boolean;

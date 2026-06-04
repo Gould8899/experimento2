@@ -2,7 +2,7 @@
   <div
     :class="['print:hidden', compact ? 'grid w-full gap-2' : 'mb-3 grid gap-2']"
   >
-    <div class="flex items-center justify-between gap-2">
+    <div v-if="!compact" class="flex items-center justify-between gap-2">
       <div
         class="text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase dark:text-neutral-200"
       >

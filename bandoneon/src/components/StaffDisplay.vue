@@ -1,35 +1,12 @@
 <template>
   <div
-    class="flex h-full min-h-[27rem] flex-col rounded-2xl border border-neutral-200 bg-white p-4.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+    class="flex h-full min-h-0 flex-col rounded-2xl border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
   >
-    <div class="mb-1.5 flex items-center justify-between gap-3">
-      <div>
-        <div
-          class="text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase dark:text-neutral-200"
-        >
-          {{ t('staff') }}
-        </div>
-        <div class="text-xs font-semibold tracking-tight">
-          {{ subtitle }}
-        </div>
-      </div>
-      <div class="text-[11px] text-neutral-500 dark:text-neutral-400">
-        {{ notes.length }} {{ t('staff_notes') }}
-      </div>
-    </div>
-
-    <p
-      v-if="showPlayHint"
-      class="mb-2 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400"
-    >
-      {{ t('staff_play_hint') }}
-    </p>
-
     <svg
       ref="svgEl"
-      class="block h-84 w-full flex-1 touch-none sm:h-[26rem] lg:h-full"
+      class="block h-full min-h-[10rem] w-full flex-1 touch-none"
       :class="gestureActive ? 'cursor-grabbing' : 'cursor-crosshair'"
-      viewBox="0 0 1120 560"
+      viewBox="0 0 1320 520"
       preserveAspectRatio="xMidYMid meet"
       shape-rendering="geometricPrecision"
       text-rendering="optimizeLegibility"
@@ -40,31 +17,31 @@
       @lostpointercapture="onSvgPointerEnd"
     >
       <rect
-        x="22"
-        y="26"
-        width="1076"
-        height="508"
-        rx="24"
+        x="12"
+        y="20"
+        width="1296"
+        height="480"
+        rx="20"
         fill="currentColor"
         opacity="0.025"
       />
 
       <line
-        x1="138"
-        x2="138"
-        y1="56"
-        y2="494"
+        x1="118"
+        x2="118"
+        y1="48"
+        y2="472"
         stroke="currentColor"
         stroke-opacity="0.18"
         stroke-width="2.4"
       />
 
       <rect
-        :x="timelineCenterX - 28"
-        y="56"
-        width="56"
-        height="438"
-        rx="18"
+        :x="timelineCenterX - 24"
+        y="48"
+        width="48"
+        height="424"
+        rx="16"
         fill="currentColor"
         opacity="0.04"
       />
@@ -72,8 +49,8 @@
       <line
         :x1="timelineCenterX"
         :x2="timelineCenterX"
-        y1="56"
-        y2="494"
+        y1="48"
+        y2="472"
         stroke="currentColor"
         stroke-opacity="0.14"
         stroke-dasharray="8 8"
@@ -84,8 +61,8 @@
         <line
           v-for="y in line.lines"
           :key="`${line.id}-${y}`"
-          x1="44"
-          x2="1084"
+          x1="36"
+          x2="1284"
           :y1="y"
           :y2="y"
           stroke="currentColor"
@@ -244,14 +221,14 @@
 
       <text
         v-if="noteLayout.length === 0"
-        x="460"
-        y="282"
-        font-size="22"
+        x="660"
+        y="268"
+        font-size="20"
         text-anchor="middle"
         fill="currentColor"
-        opacity="0.45"
+        opacity="0.28"
       >
-        {{ t('staff_empty') }}
+        {{ t('staff') }}
       </text>
     </svg>
   </div>
@@ -304,7 +281,6 @@ const emit = defineEmits<{
 const props = defineProps<{
   notes: string[];
   groupBreaks?: number[];
-  subtitle: string;
   noteColors: Record<string, string>;
   hand: 'right' | 'left';
   tonic: string | null;
@@ -342,12 +318,6 @@ const middleLineY = {
 } as const;
 const activeStaff = computed<StaffName>(() =>
   props.hand === 'right' ? 'treble' : 'bass',
-);
-const showPlayHint = computed(
-  () =>
-    props.notes.length === 0 &&
-    (props.treblePlayableNotes.length > 0 ||
-      props.bassPlayableNotes.length > 0),
 );
 const staffHitAreas = computed(() =>
   (['treble', 'bass'] as const).map((id) => {
@@ -396,9 +366,9 @@ const keySignatureLayouts = {
   },
 } as const;
 
-const keySignatureStartX = 188;
-const keySignatureGap = 20;
-const keySignatureNotePadding = 66;
+const keySignatureStartX = 152;
+const keySignatureGap = 18;
+const keySignatureNotePadding = 52;
 
 const tonality = computed(() =>
   resolveSelectionTonality(
@@ -448,29 +418,24 @@ const keySignatureEndX = computed(() => {
 });
 
 const noteAreaLeft = computed(() =>
-  Math.max(292, keySignatureEndX.value + keySignatureNotePadding),
+  Math.max(248, keySignatureEndX.value + keySignatureNotePadding),
 );
 
-const noteAreaRight = 1080;
+const noteAreaRight = 1290;
 const timelineCenterX = computed(() =>
-  Math.max(
-    noteAreaLeft.value + 210,
-    noteAreaRight - (keySignatureGlyphs.value.length === 0 ? 88 : 112),
-  ),
+  Math.max(noteAreaLeft.value + 180, noteAreaRight - 40),
 );
 
 const trebleClef = {
-  x: 72,
-  // The treble clef curl should sit on the second line.
-  y: staffLines[0].lines[1] + 48,
-  fontSize: 150,
+  x: 58,
+  y: staffLines[0].lines[1] + 44,
+  fontSize: 138,
 } as const;
 
 const bassClef = {
-  x: 76,
-  // The bass clef dots frame the fourth line.
-  y: staffLines[1].lines[3] + 17,
-  fontSize: 118,
+  x: 62,
+  y: staffLines[1].lines[3] + 15,
+  fontSize: 108,
 } as const;
 
 const phraseBreakBaseWeight = 1.55;
@@ -482,13 +447,13 @@ const visibleGroupBreakSet = computed(() => {
     return new Set<number>();
   }
 
-  return new Set(props.groupBreaks.filter((index) => index > 0 && index < 16));
+  return new Set(props.groupBreaks.filter((index) => index > 0 && index < 24));
 });
 
 const noteLayout = computed<DisplayNote[]>(() => {
   if (props.notes.length === 0) return [];
 
-  const visibleNotes = props.notes.slice(-16);
+  const visibleNotes = props.notes.slice(-24);
   const noteEntries = visibleNotes.map((note) => {
     const { normalizedNote, accidental } = resolveStaffDisplayNote(
       note,
@@ -525,7 +490,7 @@ const noteLayout = computed<DisplayNote[]>(() => {
   );
   const baseGap =
     totalWeight > 0
-      ? Math.min(50, Math.max(27, availableLeftWidth / totalWeight))
+      ? Math.min(38, Math.max(18, availableLeftWidth / totalWeight))
       : 0;
   const positions = new Array(noteEntries.length).fill(timelineCenterX.value);
 

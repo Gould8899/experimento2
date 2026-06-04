@@ -5,16 +5,16 @@ export type StaffName = 'treble' | 'bass';
 export const STAFF_LAYOUT = {
   lineSpacing: 27,
   staffTop: {
-    treble: 106,
-    bass: 342,
+    treble: 98,
+    bass: 318,
   },
   bottomLineIndex: {
     treble: diatonicIndex('E4'),
     bass: diatonicIndex('G2'),
   },
   noteArea: {
-    left: 44,
-    right: 1084,
+    left: 36,
+    right: 1284,
   },
 } as const;
 

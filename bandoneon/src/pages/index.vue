@@ -1,6 +1,6 @@
 <template>
   <div
-    class="relative h-full overflow-x-hidden overflow-y-auto p-1.5 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:p-2 md:pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:overflow-hidden lg:overflow-y-hidden lg:pb-0"
+    class="relative h-full overflow-x-hidden overflow-y-auto p-1 pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:overflow-hidden lg:overflow-y-hidden lg:p-1.5 lg:pb-1.5"
   >
     <div
       v-if="mobilePanelOpen"
@@ -10,7 +10,7 @@
     />
 
     <div
-      class="grid min-h-full gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]"
+      class="grid min-h-full gap-1.5 lg:h-full lg:min-h-0 lg:grid-cols-[10.75rem_minmax(0,1fr)] xl:grid-cols-[11.25rem_minmax(0,1fr)]"
     >
       <aside :class="sidebarClasses">
         <div class="flex items-center justify-between gap-2 lg:hidden">
@@ -28,101 +28,55 @@
           </button>
         </div>
 
-        <header class="flex items-start justify-between gap-2 px-0.5">
-          <div class="min-w-0">
-            <h1
-              class="text-sm font-bold tracking-tight text-neutral-900 dark:text-neutral-50"
-            >
-              {{ t('app_title') }}
-            </h1>
-            <p
-              class="mt-1 line-clamp-2 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400"
-              :title="workspaceSummary"
-            >
-              {{ workspaceSummary }}
-            </p>
-          </div>
-          <div class="flex shrink-0 gap-1">
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none aria-pressed:border-sky-600 aria-pressed:bg-sky-600 aria-pressed:text-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:aria-pressed:border-sky-500 dark:aria-pressed:bg-sky-500"
-              :aria-label="t('toggle_sound')"
-              :aria-pressed="soundEnabled"
-              :title="t('toggle_sound')"
-              @click="toggleSound"
-            >
-              <IconSpeakerWave v-if="soundEnabled" class="h-5 w-5" />
-              <IconSpeakerX v-else class="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
-              :aria-label="isDark ? t('light') : t('dark')"
-              :title="isDark ? t('light') : t('dark')"
-              @click="isDark = !isDark"
-            >
-              <IconSun v-if="isDark" class="h-5 w-5" />
-              <IconMoon v-else class="h-5 w-5" />
-            </button>
-          </div>
-        </header>
-
-        <section
-          class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
-        >
-          <div class="grid gap-2.5">
-            <NavVariant compact />
-            <div
-              class="border-t border-neutral-200/80 dark:border-neutral-800"
-            ></div>
-            <NavDisplay
-              compact
-              :can-reset="canResetSelection"
-              :show-scale-guides="showScaleGuides"
-              :reset-title="resetActionLabel"
-              :reset-shortcut="resetActionShortcut"
-              :reset-search-shortcut="resetSearchShortcut"
-              :actions-hint="actionsShortcutHint"
-              @reset="onReset"
-              @reset-search="onResetSearch"
-              @download="onDownload"
-              @toggle-scale-guides="setScaleGuidesVisibility"
-            />
-          </div>
+        <section class="min-w-0 overflow-x-hidden rounded-xl border border-neutral-200 p-1.5 dark:border-neutral-800">
+          <NavVariant compact />
+          <div class="my-1.5 border-t border-neutral-200/80 dark:border-neutral-800" />
+          <NavDisplay
+            compact
+            :can-reset="canResetSelection"
+            :show-scale-guides="showScaleGuides"
+            :reset-title="resetActionLabel"
+            :reset-shortcut="resetActionShortcut"
+            :reset-search-shortcut="resetSearchShortcut"
+            @reset="onReset"
+            @reset-search="onResetSearch"
+            @download="onDownload"
+            @toggle-scale-guides="setScaleGuidesVisibility"
+          />
         </section>
 
-        <section
-          class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
-        >
+        <div class="grid grid-cols-2 gap-1">
           <Button
-            class="w-full"
+            class="w-full px-1 text-[11px]"
             :title="`${t('open_settings')} (${t('settings_open_shortcut')})`"
             @click="openSettings"
           >
             {{ t('open_settings') }}
           </Button>
-        </section>
-
-        <AppFooter @open-credits="openCredits" />
+          <button
+            type="button"
+            class="rounded-lg border border-neutral-300 px-1 py-1.5 text-[11px] font-semibold text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none dark:border-neutral-600 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            @click="openCredits"
+          >
+            {{ t('credits') }}
+          </button>
+        </div>
       </aside>
 
       <section
-        class="flex min-h-0 flex-col rounded-3xl border border-neutral-200 bg-white p-1.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+        class="flex min-h-0 flex-col rounded-2xl border border-neutral-200 bg-white p-1 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
       >
         <div
-          class="grid min-h-0 flex-1 gap-2.5 lg:grid-rows-[minmax(0,1fr)_auto]"
+          class="grid min-h-0 flex-1 gap-1.5 lg:grid-rows-[minmax(0,1fr)_auto]"
         >
           <div
             ref="bandoneonPanelEl"
-            class="grid min-h-0 gap-2.5 xl:grid-cols-[minmax(0,1.12fr)_minmax(20rem,0.98fr)] 2xl:grid-cols-[minmax(0,1.16fr)_minmax(22rem,1fr)]"
+            class="grid min-h-0 gap-1.5 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] xl:grid-cols-[minmax(0,0.88fr)_minmax(0,1.12fr)]"
           >
             <div
-              class="flex min-h-[16rem] min-w-0 items-center justify-center overflow-hidden rounded-2xl bg-neutral-100/80 px-1 py-2 sm:min-h-[20rem] lg:min-h-[22rem] xl:min-h-[24rem] 2xl:min-h-[28rem] dark:bg-neutral-800/40"
+              class="flex min-h-[12rem] min-w-0 items-stretch justify-center overflow-hidden rounded-xl bg-neutral-100/70 p-0.5 dark:bg-neutral-800/40"
             >
-              <div
-                class="flex h-full min-h-0 w-full items-center justify-center"
-              >
-                <SvgKeyboard ref="keyboardEl" :side="side" :mode="viewMode">
+              <SvgKeyboard ref="keyboardEl" class="h-full w-full" :side="side" :mode="viewMode">
                   <SvgButton
                     v-for="([x, y, tonal], idx) in keyPositions"
                     :key="idx"
@@ -154,17 +108,12 @@
                     />
                   </template>
                 </SvgKeyboard>
-              </div>
             </div>
 
-            <div
-              ref="staffPanelEl"
-              class="min-h-0 min-w-0 lg:flex lg:items-stretch"
-            >
+            <div ref="staffPanelEl" class="min-h-0 min-w-0">
               <StaffDisplay
                 :notes="staffNotes"
                 :group-breaks="staffGroupBreaks"
-                :subtitle="staffSubtitle"
                 :note-colors="pianoNoteColors"
                 :hand="side"
                 :tonic="tonic"
@@ -186,7 +135,6 @@
           <div ref="pianoPanelEl" class="min-w-0">
             <PianoKeyboard
               compact
-              :subtitle="pianoSubtitle"
               :notes="instrumentFullNoteRange"
               :interaction-mode="interactionMode"
               :gesture-active="gestureActive"
@@ -261,15 +209,12 @@ import { storeToRefs } from 'pinia';
 import { Note } from 'tonal';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import AppCredits from '../components/AppCredits.vue';
-import AppFooter from '../components/AppFooter.vue';
 import AppSettings from '../components/AppSettings.vue';
 import Button from '../components/Button.vue';
 import IconBars3 from '../components/icons/IconBars3.vue';
-import IconMoon from '../components/icons/IconMoon.vue';
 import IconPalette from '../components/icons/IconPalette.vue';
 import IconSpeakerWave from '../components/icons/IconSpeakerWave.vue';
 import IconSpeakerX from '../components/icons/IconSpeakerX.vue';
-import IconSun from '../components/icons/IconSun.vue';
 import NavDisplay from '../components/NavDisplay.vue';
 import NavVariant from '../components/NavVariant.vue';
 import PianoKeyboard from '../components/PianoKeyboard.vue';
@@ -281,12 +226,10 @@ import { useKeyboard } from '../composables/useKeyboard';
 import { useSynth } from '../composables/useSynth';
 import { useDark } from '../composables/useDark';
 import {
-  arpeggioTypes,
   colors,
   getInstrumentNotesForSide,
   instrumentFullNoteRange,
   isArpeggioType,
-  scaleTypes,
   usesFormulaChordType,
 } from '../data/index';
 import { useStore } from '../stores/main';
@@ -326,7 +269,7 @@ const showCredits = ref(false);
 const mobilePanelOpen = ref(false);
 
 const sidebarClasses = computed(() => [
-  'grid min-w-0 content-start gap-2 overflow-x-hidden rounded-3xl border border-neutral-200 bg-white p-2.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900',
+  'grid min-w-0 content-start gap-1.5 overflow-x-hidden rounded-2xl border border-neutral-200 bg-white p-1.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900',
   mobilePanelOpen.value
     ? 'fixed inset-x-3 top-3 z-50 max-h-[calc(100dvh-5.75rem-env(safe-area-inset-bottom))] overflow-y-auto shadow-2xl'
     : 'hidden lg:grid lg:min-h-0 lg:overflow-y-auto',
@@ -352,30 +295,6 @@ const settings = useSettingsStore();
 const { instrument, showScaleGuides, soundEnabled, soundMode, viewMode } =
   storeToRefs(settings);
 const { isDark } = useDark();
-
-const pianoSubtitle = computed(() =>
-  t('piano_subtitle', { instrument: t(instrument.value) }),
-);
-
-const workspaceSummary = computed(() => {
-  const parts: string[] = [];
-
-  if (tonic.value) {
-    parts.push(tonic.value);
-  }
-
-  if (scaleType.value) {
-    const scale = scaleTypes.find((item) => item.value === scaleType.value);
-    if (scale) parts.push(t(scale.label));
-  }
-
-  if (chordType.value) {
-    const arpeggio = arpeggioTypes.find((item) => item.value === chordType.value);
-    parts.push(t(arpeggio?.label ?? chordType.value));
-  }
-
-  return parts.length > 0 ? parts.join(' · ') : t('workspace_idle');
-});
 
 const scaleGuideStroke = computed(() =>
   isDark.value ? 'rgba(56, 189, 248, 0.88)' : 'rgba(2, 132, 199, 0.92)',
@@ -412,7 +331,6 @@ const resetActionShortcut = computed(() =>
 const resetSearchShortcut = computed(() =>
   hasSearchContextToReset.value ? 'Esc Esc' : undefined,
 );
-const actionsShortcutHint = computed(() => t('actions_escape_hint'));
 const isModified = ref(false);
 const userSelection = ref<Record<string, boolean>>({});
 const interactionMode = ref<'paint-on'>('paint-on');
@@ -772,19 +690,6 @@ const staffGroupBreaks = computed(() => {
   }
 
   return breaks;
-});
-
-const staffSubtitle = computed(() => {
-  if (staffState.value.source === 'gesture') return t('staff_live_phrase');
-  if (staffState.value.source === 'manual') return t('staff_manual_selection');
-  if (staffState.value.source === 'recent') return t('staff_recent_phrase');
-  if (staffState.value.source === 'voicing') {
-    return isArpeggioSelection.value
-      ? t('staff_arpeggio_outline')
-      : t('staff_current_voicing');
-  }
-  if (staffState.value.source === 'scale') return t('staff_scale_outline');
-  return t('staff_waiting');
 });
 
 function color(tonal: string) {

@@ -114,29 +114,16 @@ defineExpose({ download });
 .keyboard {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   min-height: 0;
-  margin-inline: auto;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .keyboard--real {
-  width: min(100%, 32rem);
-  height: auto;
+  width: 100%;
+  height: 100%;
   max-width: 100%;
-  max-height: min(78dvh, 44rem);
-  aspect-ratio: 410 / 690;
-}
-
-@media (max-height: 900px) {
-  .keyboard--real {
-    width: min(100%, 28rem);
-    max-height: min(74dvh, 38rem);
-  }
-}
-
-@media (max-width: 1536px) {
-  .keyboard--real {
-    width: min(100%, 29rem);
-  }
+  max-height: 100%;
 }
 </style>

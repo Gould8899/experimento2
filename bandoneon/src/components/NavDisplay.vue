@@ -7,6 +7,7 @@
   >
     <div>
       <div
+        v-if="!compact"
         class="mb-1.5 text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none dark:text-neutral-200"
       >
         {{ t('notation') }}
@@ -37,6 +38,7 @@
 
     <div>
       <div
+        v-if="!compact"
         class="mb-1.5 text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none dark:text-neutral-200"
       >
         {{ t('scale') }}
@@ -71,6 +73,7 @@
 
     <div>
       <div
+        v-if="!compact"
         class="mb-1.5 text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none dark:text-neutral-200"
       >
         {{ t('arpeggio') }}
@@ -100,6 +103,7 @@
 
     <div>
       <div
+        v-if="!compact"
         class="mb-1.5 text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none dark:text-neutral-200"
       >
         {{ t('scale_guides') }}
@@ -124,6 +128,7 @@
 
     <div>
       <div
+        v-if="!compact"
         class="mb-1.5 text-[11px] font-semibold tracking-[0.14em] text-neutral-700 uppercase select-none dark:text-neutral-200"
       >
         {{ t('actions') }}
@@ -179,7 +184,7 @@
         </Button>
       </div>
       <div
-        v-if="actionsHint"
+        v-if="actionsHint && !compact"
         class="mt-1.5 rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2 text-[11px] text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800/60 dark:text-neutral-300"
       >
         {{ actionsHint }}
