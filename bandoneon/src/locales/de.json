@@ -134,6 +134,7 @@
   "save_voicing": "Voicing speichern",
   "credits": "Credits",
   "mapping_credit_prefix": "Instrumentenabbildung basierend auf der Originalarbeit von",
+  "workspace_credit_prefix": "Dieser Workspace wurde entwickelt von",
   "arpeggio": "Arpeggio",
   "scale": "Tonleiter",
   "scale_none": "ohne Tonleiter",

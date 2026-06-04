@@ -30,6 +30,17 @@
 
       <div class="grid gap-4 text-sm leading-relaxed text-neutral-700 dark:text-neutral-300">
         <p>
+          {{ t('workspace_credit_prefix') }}
+          <a
+            :href="WORKSPACE_CREDIT.url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-semibold text-sky-700 underline decoration-sky-700/30 underline-offset-2 hover:decoration-sky-700 dark:text-sky-400 dark:decoration-sky-400/40"
+          >
+            {{ WORKSPACE_CREDIT.name }}
+          </a>.
+        </p>
+        <p>
           {{ t('mapping_credit_prefix') }}
           <a
             :href="MAPPING_CREDIT.url"
@@ -59,7 +70,7 @@
 <script setup lang="ts">
 import { useI18n } from 'petite-vue-i18n';
 import { onMounted, onUnmounted, useId } from 'vue';
-import { MAPPING_CREDIT } from '../constants/credits';
+import { MAPPING_CREDIT, WORKSPACE_CREDIT } from '../constants/credits';
 
 const emit = defineEmits<{ close: [] }>();
 

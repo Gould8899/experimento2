@@ -132,6 +132,7 @@
   "save_voicing": "Guardar voicing",
   "credits": "Créditos",
   "mapping_credit_prefix": "Mapa del instrumento adaptado del trabajo original de",
+  "workspace_credit_prefix": "Este espacio de trabajo fue desarrollado por",
   "arpeggio": "arpegio",
   "scale": "escala",
   "scale_none": "sin escala",

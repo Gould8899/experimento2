@@ -53,7 +53,7 @@
     <div
       ref="keyboardEl"
       :class="[
-        'relative touch-none overflow-hidden rounded-xl bg-neutral-200 p-1 dark:bg-neutral-950',
+        'relative touch-none overflow-hidden rounded-xl bg-neutral-300 p-px dark:bg-neutral-900',
         compact ? 'h-24 sm:h-26' : 'h-36',
         props.gestureActive ? 'cursor-grabbing' : 'cursor-crosshair',
       ]"
@@ -67,10 +67,15 @@
         v-for="key in whiteKeys"
         :key="key.note"
         :class="[
-          'absolute top-0 right-auto bottom-0 z-10 overflow-hidden rounded-b-lg border border-neutral-300 transition',
-          key.available
-            ? 'hover:border-neutral-500 dark:border-neutral-700'
-            : 'dark:border-neutral-800',
+          'absolute top-0 right-auto bottom-0 z-10 overflow-hidden transition',
+          key.secondary
+            ? 'rounded-none border-0'
+            : 'rounded-b-lg border border-neutral-300 dark:border-neutral-700',
+          key.available && !key.secondary
+            ? 'hover:border-neutral-500'
+            : !key.secondary
+              ? 'dark:border-neutral-800'
+              : '',
           !isPlayable(key)
             ? 'cursor-default'
             : props.gestureActive
@@ -98,7 +103,10 @@
         v-for="key in blackKeys"
         :key="key.note"
         :class="[
-          'absolute top-0 z-30 rounded-b-lg border border-neutral-950 text-white shadow-sm transition',
+          'absolute top-0 z-30 transition',
+          key.secondary
+            ? 'rounded-none border-0 text-transparent'
+            : 'rounded-b-lg border border-neutral-950 text-white shadow-sm',
           !isPlayable(key)
             ? 'cursor-default'
             : props.gestureActive
@@ -244,7 +252,30 @@ function formatLabel(note: string) {
   );
 }
 
+function secondaryKeyStyle(key: PianoKey) {
+  const fill = '#232323';
+  const width = key.isBlack
+    ? `${whiteKeyWidth.value * 0.64 + 0.35}%`
+    : `${whiteKeyWidth.value + 0.35}%`;
+
+  return {
+    left: `${key.left * 100}%`,
+    width,
+    height: key.isBlack ? '62%' : '100%',
+    background: fill,
+    border: 'none',
+    boxShadow: 'none',
+    color: 'transparent',
+    opacity: 1,
+    transform: undefined,
+  };
+}
+
 function whiteKeyStyle(key: PianoKey) {
+  if (key.secondary) {
+    return secondaryKeyStyle(key);
+  }
+
   const noteColor = props.noteColors[key.note] || '#94a3b8';
   const playable = isPlayable(key);
   const gestureAccent =
@@ -255,19 +286,6 @@ function whiteKeyStyle(key: PianoKey) {
     props.gestureMode === 'erase'
       ? 'rgba(245, 158, 11, 0.26)'
       : 'rgba(16, 185, 129, 0.24)';
-  if (key.secondary) {
-    return {
-      left: `${key.left * 100}%`,
-      width: `${whiteKeyWidth.value}%`,
-      background: '#000000',
-      borderColor: '#000000',
-      boxShadow:
-        'inset 0 -18px 0 rgba(0, 0, 0, 0.98), inset 0 0 0 999px rgba(0, 0, 0, 0.9)',
-      color: '#000000',
-      opacity: 1,
-    };
-  }
-
   const inactiveBackground = !key.available
     ? '#d1d5db'
     : key.muted
@@ -304,6 +322,10 @@ function whiteKeyStyle(key: PianoKey) {
 }
 
 function blackKeyStyle(key: PianoKey) {
+  if (key.secondary) {
+    return secondaryKeyStyle(key);
+  }
+
   const noteColor = props.noteColors[key.note] || '#111827';
   const playable = isPlayable(key);
   const gestureOutline =
@@ -312,28 +334,11 @@ function blackKeyStyle(key: PianoKey) {
       : 'rgba(52, 211, 153, 0.34)';
   const accent = key.active
     ? withAlpha(noteColor, 'e6')
-    : key.secondary
-      ? '#71717a'
-      : key.muted
-        ? '#a1a1aa'
-        : playable
-          ? withAlpha(noteColor, 'd0')
-          : '#3f3f46';
-
-  if (key.secondary) {
-    return {
-      left: `${key.left * 100}%`,
-      width: `${whiteKeyWidth.value * 0.64}%`,
-      height: '62%',
-      background: '#000000',
-      borderColor: '#000000',
-      boxShadow:
-        'inset 0 -18px 0 #000000, inset 0 0 0 999px rgba(0, 0, 0, 0.88), 0 8px 14px rgba(0, 0, 0, 0.35)',
-      color: '#000000',
-      opacity: 1,
-      transform: undefined,
-    };
-  }
+    : key.muted
+      ? '#a1a1aa'
+      : playable
+        ? withAlpha(noteColor, 'd0')
+        : '#3f3f46';
 
   return {
     left: `${key.left * 100}%`,
