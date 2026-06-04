@@ -225,7 +225,7 @@ const emit = defineEmits<{
   toggleScaleGuides: [visible: boolean];
 }>();
 
-const { t } = useI18n();
+const { t } = useI18n({ useScope: 'global' });
 const store = useStore();
 const settings = useSettingsStore();
 const { scaleType, showEnharmonics, chordType, isUserChord } =

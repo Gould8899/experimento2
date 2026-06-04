@@ -16,7 +16,7 @@
         <div
           class="text-xs font-medium tracking-[0.18em] text-neutral-500 uppercase dark:text-neutral-400"
         >
-          Piano map
+          {{ t('piano_map') }}
         </div>
         <div
           :class="
@@ -25,7 +25,7 @@
               : 'text-sm font-semibold tracking-tight'
           "
         >
-          {{ t('piano_subtitle') }}
+          {{ subtitle }}
         </div>
         <div
           v-if="showScaleLegend"
@@ -54,7 +54,6 @@
       <div
         class="text-right text-[11px] text-neutral-500 dark:text-neutral-400"
       >
-        <div>{{ t('sound') }}: {{ soundEnabled ? t('on') : t('off') }}</div>
         <div>{{ activeNoteCount }} {{ t('manual_notes') }}</div>
       </div>
     </div>
@@ -90,7 +89,6 @@
         :title="formatLabel(key.note)"
         :aria-disabled="!isPlayable(key)"
         type="button"
-        @click="emit('press', key.note)"
       >
         <span
           :class="[
@@ -119,7 +117,6 @@
         :title="formatLabel(key.note)"
         :aria-disabled="!isPlayable(key)"
         type="button"
-        @click="emit('press', key.note)"
       >
         <span
           class="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] font-medium"
@@ -158,6 +155,7 @@ type PianoKey = {
 };
 
 const props = defineProps<{
+  subtitle: string;
   notes: string[];
   interactionMode?: 'paint-on';
   gestureActive?: boolean;
@@ -169,14 +167,12 @@ const props = defineProps<{
   mutedNotes?: string[];
   noteColors: Record<string, string>;
   pitchNotation: 'scientific' | 'helmholtz' | 'solfege';
-  soundEnabled: boolean;
   preferFlats?: boolean;
   compact?: boolean;
 }>();
 
 const emit = defineEmits<{
   start: [note: string];
-  press: [note: string];
   hover: [note: string];
 }>();
 

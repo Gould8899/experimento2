@@ -1,15 +1,32 @@
 <template>
   <div
-    class="fixed inset-0 z-50 bg-neutral-950/20 backdrop-blur-[1px]"
+    class="fixed inset-0 z-[60] bg-neutral-950/30 backdrop-blur-sm"
+    role="presentation"
     @click.self="emit('close')"
   >
     <aside
-      class="absolute inset-x-3 top-3 max-h-[calc(100vh-1.5rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-4 shadow-2xl sm:inset-x-auto sm:top-3 sm:right-3 sm:w-[34rem] lg:w-[38rem] dark:border-neutral-700 dark:bg-neutral-900"
+      role="dialog"
+      aria-modal="true"
+      :aria-labelledby="titleId"
+      class="absolute inset-x-3 top-[max(0.75rem,env(safe-area-inset-top))] max-h-[calc(100dvh-1.5rem)] overflow-x-hidden overflow-y-auto rounded-3xl border border-neutral-200 bg-white p-4 shadow-2xl sm:inset-x-auto sm:top-[max(0.75rem,env(safe-area-inset-top))] sm:right-3 sm:w-[34rem] lg:w-[38rem] dark:border-neutral-700 dark:bg-neutral-900"
+      @keydown.escape.prevent="emit('close')"
     >
-      <div class="mb-4 flex items-center justify-end gap-4">
+      <div class="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h2
+            :id="titleId"
+            class="text-base font-semibold tracking-tight text-neutral-900 dark:text-neutral-50"
+          >
+            {{ t('settings_title') }}
+          </h2>
+          <p class="mt-0.5 text-xs text-neutral-500 dark:text-neutral-400">
+            {{ t('settings_shortcut') }}
+          </p>
+        </div>
         <button
-          class="inline-flex h-9 w-9 items-center justify-center rounded-xl text-lg transition hover:bg-neutral-100 dark:hover:bg-neutral-800"
           type="button"
+          class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xl leading-none text-neutral-600 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none dark:text-neutral-300 dark:hover:bg-neutral-800"
+          :aria-label="t('close_settings')"
           @click="emit('close')"
         >
           ×
@@ -199,6 +216,31 @@
           </div>
         </section>
       </div>
+
+      <section
+        class="mt-4 rounded-2xl border border-neutral-200 p-3 dark:border-neutral-800"
+      >
+        <div
+          class="text-[11px] font-semibold tracking-[0.16em] text-neutral-500 uppercase dark:text-neutral-400"
+        >
+          {{ t('keyboard_shortcuts') }}
+        </div>
+        <ul
+          class="mt-2 grid gap-1.5 text-xs text-neutral-600 dark:text-neutral-300"
+        >
+          <li>
+            <span class="font-medium">{{ t('shortcut_open_settings') }}:</span>
+            {{ t('settings_open_shortcut') }}
+          </li>
+          <li>
+            <span class="font-medium">{{ t('settings_title') }}:</span>
+            {{ t('settings_shortcut') }}
+          </li>
+        </ul>
+        <Button class="mt-3 w-full" @click="emit('openCredits')">
+          {{ t('credits') }}
+        </Button>
+      </section>
     </aside>
   </div>
 </template>
@@ -206,14 +248,16 @@
 <script setup lang="ts">
 import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
+import { onMounted, onUnmounted, useId } from 'vue';
 import { useDark } from '../composables/useDark';
 import { pitchNotations } from '../data/index';
 import { useStore } from '../stores/main';
 import { availableLocaleCodes, useSettingsStore } from '../stores/settings';
 import Button from './Button.vue';
 
-const emit = defineEmits<{ close: [] }>();
+const emit = defineEmits<{ close: []; openCredits: [] }>();
 
+const titleId = useId();
 const { isDark } = useDark();
 const store = useStore();
 const settings = useSettingsStore();
@@ -223,4 +267,12 @@ const { pitchNotation, locale, soundEnabled, soundMode, viewMode } =
   storeToRefs(settings);
 
 const { t } = useI18n({ useScope: 'global' });
+
+onMounted(() => {
+  document.body.style.overflow = 'hidden';
+});
+
+onUnmounted(() => {
+  document.body.style.overflow = '';
+});
 </script>

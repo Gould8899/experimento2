@@ -10,11 +10,16 @@
 
 <script setup lang="ts">
 import { useHead } from '@unhead/vue';
+import { useI18n } from 'petite-vue-i18n';
 import { useAppSettings } from './composables/useAppSettings';
 
 // Root shell: keeps layout simple and delegates settings sync/persistence to a composable.
 
-useHead({ title: 'Bandoneon Workspace' });
-
 useAppSettings();
+
+const { t } = useI18n({ useScope: 'global' });
+
+useHead({
+  title: () => t('app_title'),
+});
 </script>

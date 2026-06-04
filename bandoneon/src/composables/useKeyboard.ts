@@ -2,7 +2,7 @@ import { onMounted, onUnmounted } from 'vue';
 import { chordUiEnabled } from '../data/index';
 import { useStore } from '../stores/main';
 
-// Global keyboard shortcuts shared by the main keyboard view and the training game.
+// Global keyboard shortcuts for the main bandoneon workspace view.
 //
 // Shortcut map
 // ────────────────────────────────────────────────────────
@@ -13,8 +13,23 @@ import { useStore } from '../stores/main';
 //             (E# and B# are omitted — they are enharmonic to F and C)
 //  M / m / 7  →  set chord type (only active when chordUiEnabled is true)
 //  Escape  →  clear the search selection, or call onEscape if provided
+//  ? ,     →  toggle settings panel (when onOpenSettings is provided)
 // ────────────────────────────────────────────────────────
-export function useKeyboard(options?: { onEscape?: () => void }) {
+function isEditableTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return (
+    tag === 'INPUT' ||
+    tag === 'TEXTAREA' ||
+    tag === 'SELECT' ||
+    target.isContentEditable
+  );
+}
+
+export function useKeyboard(options?: {
+  onEscape?: () => void;
+  onOpenSettings?: () => void;
+}) {
   const store = useStore();
 
   function setSideAndDirection(
@@ -26,8 +41,15 @@ export function useKeyboard(options?: { onEscape?: () => void }) {
 
   function listener(event: KeyboardEvent) {
     if (event.repeat) return;
+    if (isEditableTarget(event.target)) return;
 
     const { key } = event;
+
+    if (options?.onOpenSettings && (key === '?' || key === ',')) {
+      event.preventDefault();
+      options.onOpenSettings();
+      return;
+    }
 
     // Side and direction
     if (key === 'l') return setSideAndDirection('left', 'open');

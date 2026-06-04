@@ -1,13 +1,72 @@
 <template>
   <div
-    class="h-full overflow-x-hidden overflow-y-auto p-1.5 md:p-2 lg:overflow-hidden lg:overflow-y-hidden"
+    class="relative h-full overflow-x-hidden overflow-y-auto p-1.5 pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:p-2 md:pb-[calc(4.75rem+env(safe-area-inset-bottom))] lg:overflow-hidden lg:overflow-y-hidden lg:pb-0"
   >
+    <div
+      v-if="mobilePanelOpen"
+      class="fixed inset-0 z-40 bg-neutral-950/25 lg:hidden"
+      aria-hidden="true"
+      @click="mobilePanelOpen = false"
+    />
+
     <div
       class="grid min-h-full gap-2 lg:h-full lg:min-h-0 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]"
     >
-      <aside
-        class="grid min-w-0 content-start gap-2 overflow-x-hidden rounded-3xl border border-neutral-200 bg-white p-2.5 shadow-sm lg:min-h-0 lg:overflow-y-auto dark:border-neutral-800 dark:bg-neutral-900"
-      >
+      <aside :class="sidebarClasses">
+        <div class="flex items-center justify-between gap-2 lg:hidden">
+          <span
+            class="text-[11px] font-semibold tracking-[0.12em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            {{ t('open_controls') }}
+          </span>
+          <button
+            type="button"
+            class="inline-flex h-8 items-center rounded-lg px-2.5 text-xs font-semibold text-neutral-600 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none dark:text-neutral-300 dark:hover:bg-neutral-800"
+            @click="mobilePanelOpen = false"
+          >
+            {{ t('close_controls') }}
+          </button>
+        </div>
+
+        <header class="flex items-start justify-between gap-2 px-0.5">
+          <div class="min-w-0">
+            <h1
+              class="text-sm font-bold tracking-tight text-neutral-900 dark:text-neutral-50"
+            >
+              {{ t('app_title') }}
+            </h1>
+            <p
+              class="mt-1 line-clamp-2 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400"
+              :title="workspaceSummary"
+            >
+              {{ workspaceSummary }}
+            </p>
+          </div>
+          <div class="flex shrink-0 gap-1">
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none aria-pressed:border-sky-600 aria-pressed:bg-sky-600 aria-pressed:text-white dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700 dark:aria-pressed:border-sky-500 dark:aria-pressed:bg-sky-500"
+              :aria-label="t('toggle_sound')"
+              :aria-pressed="soundEnabled"
+              :title="t('toggle_sound')"
+              @click="toggleSound"
+            >
+              <IconSpeakerWave v-if="soundEnabled" class="h-5 w-5" />
+              <IconSpeakerX v-else class="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+              :aria-label="isDark ? t('light') : t('dark')"
+              :title="isDark ? t('light') : t('dark')"
+              @click="isDark = !isDark"
+            >
+              <IconSun v-if="isDark" class="h-5 w-5" />
+              <IconMoon v-else class="h-5 w-5" />
+            </button>
+          </div>
+        </header>
+
         <section
           class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
         >
@@ -35,10 +94,16 @@
         <section
           class="min-w-0 overflow-x-hidden rounded-2xl border border-neutral-200 p-2 dark:border-neutral-800"
         >
-          <Button class="w-full" @click="showSettings = true">
+          <Button
+            class="w-full"
+            :title="`${t('open_settings')} (${t('settings_open_shortcut')})`"
+            @click="openSettings"
+          >
             {{ t('open_settings') }}
           </Button>
         </section>
+
+        <AppFooter @open-credits="openCredits" />
       </aside>
 
       <section
@@ -84,7 +149,7 @@
                     <SvgPath
                       v-for="(path, index) in scalePaths"
                       :key="index"
-                      :stroke="getScaleColor()"
+                      :stroke="scaleGuideStroke"
                       :d="path"
                     />
                   </template>
@@ -116,6 +181,7 @@
           <div ref="pianoPanelEl" class="min-w-0">
             <PianoKeyboard
               compact
+              :subtitle="pianoSubtitle"
               :notes="instrumentFullNoteRange"
               :interaction-mode="interactionMode"
               :gesture-active="gestureActive"
@@ -127,7 +193,6 @@
               :muted-notes="pianoMutedNotes"
               :note-colors="pianoNoteColors"
               :pitch-notation="settings.pitchNotation"
-              :sound-enabled="settings.soundEnabled"
               :prefer-flats="showEnharmonics"
               @start="onPianoStart"
               @hover="onPianoHover"
@@ -137,7 +202,50 @@
       </section>
     </div>
 
-    <AppSettings v-if="showSettings" @close="showSettings = false" />
+    <nav
+      class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 gap-1.5 border-t border-neutral-200 bg-white/95 p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(0,0,0,0.06)] backdrop-blur-md lg:hidden dark:border-neutral-800 dark:bg-neutral-900/95 dark:shadow-[0_-8px_24px_rgba(0,0,0,0.35)]"
+      :aria-label="t('open_controls')"
+    >
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none aria-pressed:bg-sky-600 aria-pressed:text-white dark:text-neutral-200 dark:hover:bg-neutral-800 dark:aria-pressed:bg-sky-500"
+        :aria-expanded="mobilePanelOpen"
+        :aria-pressed="mobilePanelOpen"
+        @click="mobilePanelOpen = !mobilePanelOpen"
+      >
+        <IconBars3 class="h-5 w-5" />
+        <span class="text-[10px] font-semibold">{{ t('open_controls') }}</span>
+      </button>
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none aria-pressed:bg-sky-600 aria-pressed:text-white dark:text-neutral-200 dark:hover:bg-neutral-800 dark:aria-pressed:bg-sky-500"
+        :aria-label="t('toggle_sound')"
+        :aria-pressed="soundEnabled"
+        @click="toggleSound"
+      >
+        <IconSpeakerWave v-if="soundEnabled" class="h-5 w-5" />
+        <IconSpeakerX v-else class="h-5 w-5" />
+        <span class="text-[10px] font-semibold">{{
+          soundEnabled ? t('on') : t('off')
+        }}</span>
+      </button>
+      <button
+        type="button"
+        class="flex flex-col items-center justify-center gap-0.5 rounded-xl py-2 text-neutral-700 transition hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:outline-none dark:text-neutral-200 dark:hover:bg-neutral-800"
+        :title="`${t('open_settings')} (${t('settings_open_shortcut')})`"
+        @click="openSettings"
+      >
+        <IconPalette class="h-5 w-5" />
+        <span class="text-[10px] font-semibold">{{ t('open_settings') }}</span>
+      </button>
+    </nav>
+
+    <AppSettings
+      v-if="showSettings"
+      @close="showSettings = false"
+      @open-credits="openCredits"
+    />
+    <AppCredits v-if="showCredits" @close="showCredits = false" />
   </div>
 </template>
 
@@ -147,8 +255,16 @@ import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
 import { Note } from 'tonal';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import AppCredits from '../components/AppCredits.vue';
+import AppFooter from '../components/AppFooter.vue';
 import AppSettings from '../components/AppSettings.vue';
 import Button from '../components/Button.vue';
+import IconBars3 from '../components/icons/IconBars3.vue';
+import IconMoon from '../components/icons/IconMoon.vue';
+import IconPalette from '../components/icons/IconPalette.vue';
+import IconSpeakerWave from '../components/icons/IconSpeakerWave.vue';
+import IconSpeakerX from '../components/icons/IconSpeakerX.vue';
+import IconSun from '../components/icons/IconSun.vue';
 import NavDisplay from '../components/NavDisplay.vue';
 import NavVariant from '../components/NavVariant.vue';
 import PianoKeyboard from '../components/PianoKeyboard.vue';
@@ -158,11 +274,14 @@ import SvgKeyboard from '../components/SvgKeyboard.vue';
 import SvgPath from '../components/SvgPath.vue';
 import { useKeyboard } from '../composables/useKeyboard';
 import { useSynth } from '../composables/useSynth';
+import { useDark } from '../composables/useDark';
 import {
+  arpeggioTypes,
   colors,
   getInstrumentNotesForSide,
   instrumentFullNoteRange,
   isArpeggioType,
+  scaleTypes,
   usesFormulaChordType,
 } from '../data/index';
 import { useStore } from '../stores/main';
@@ -185,11 +304,11 @@ import {
 } from '../utils/staffState';
 
 // Main exploration view for the instrument: chords, scales, overlays and manual edits.
-useHead({
-  title: 'Bandoneon keyboard, chords and scales - Bandoneon Workspace',
-});
-
 const { t } = useI18n({ useScope: 'global' });
+
+useHead({
+  title: () => `${t('page_title')} - ${t('app_title')}`,
+});
 const { playNote, stopAll, stopNote } = useSynth();
 
 const keyboardEl = ref<typeof SvgKeyboard>();
@@ -197,6 +316,15 @@ const bandoneonPanelEl = ref<HTMLDivElement | null>(null);
 const staffPanelEl = ref<HTMLDivElement | null>(null);
 const pianoPanelEl = ref<HTMLDivElement | null>(null);
 const showSettings = ref(false);
+const showCredits = ref(false);
+const mobilePanelOpen = ref(false);
+
+const sidebarClasses = computed(() => [
+  'grid min-w-0 content-start gap-2 overflow-x-hidden rounded-3xl border border-neutral-200 bg-white p-2.5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900',
+  mobilePanelOpen.value
+    ? 'fixed inset-x-3 top-3 z-50 max-h-[calc(100dvh-5.75rem-env(safe-area-inset-bottom))] overflow-y-auto shadow-2xl'
+    : 'hidden lg:grid lg:min-h-0 lg:overflow-y-auto',
+]);
 
 const store = useStore();
 const {
@@ -217,6 +345,35 @@ const {
 const settings = useSettingsStore();
 const { instrument, showScaleGuides, soundEnabled, soundMode, viewMode } =
   storeToRefs(settings);
+const { isDark } = useDark();
+
+const pianoSubtitle = computed(() =>
+  t('piano_subtitle', { instrument: t(instrument.value) }),
+);
+
+const workspaceSummary = computed(() => {
+  const parts: string[] = [];
+
+  if (tonic.value) {
+    parts.push(tonic.value);
+  }
+
+  if (scaleType.value) {
+    const scale = scaleTypes.find((item) => item.value === scaleType.value);
+    if (scale) parts.push(t(scale.label));
+  }
+
+  if (chordType.value) {
+    const arpeggio = arpeggioTypes.find((item) => item.value === chordType.value);
+    parts.push(t(arpeggio?.label ?? chordType.value));
+  }
+
+  return parts.length > 0 ? parts.join(' · ') : t('workspace_idle');
+});
+
+const scaleGuideStroke = computed(() =>
+  isDark.value ? 'rgba(56, 189, 248, 0.88)' : 'rgba(2, 132, 199, 0.92)',
+);
 
 const canResetSelection = computed(() => isModified.value || store.isUserChord);
 const isArpeggioSelection = computed(() => isArpeggioType(chordType.value));
@@ -328,10 +485,6 @@ const harmonicGuideNotes = computed(() => {
     .sort((left, right) => left[0] - right[0])
     .map(([, note]) => note);
 });
-
-const getScaleColor = () => {
-  return '#111111';
-};
 
 function setScaleGuidesVisibility(visible: boolean) {
   showScaleGuides.value = visible;
@@ -732,7 +885,42 @@ function handleOutsideBandoneonPointerDown(event: PointerEvent) {
   clearSelectedNotes();
 }
 
+function toggleSound() {
+  soundEnabled.value = !soundEnabled.value;
+}
+
+function openSettings() {
+  mobilePanelOpen.value = false;
+  showCredits.value = false;
+  showSettings.value = !showSettings.value;
+}
+
+function openCredits() {
+  showSettings.value = false;
+  mobilePanelOpen.value = false;
+  showCredits.value = true;
+}
+
+function handleOpenSettingsShortcut() {
+  openSettings();
+}
+
 function handleEscapeShortcut() {
+  if (showCredits.value) {
+    showCredits.value = false;
+    return;
+  }
+
+  if (showSettings.value) {
+    showSettings.value = false;
+    return;
+  }
+
+  if (mobilePanelOpen.value) {
+    mobilePanelOpen.value = false;
+    return;
+  }
+
   if (hasManualSelectionToClear.value) {
     clearSelectedNotes();
     escapeResetArmed.value = hasSearchContextToReset.value;
@@ -753,7 +941,10 @@ function handleEscapeShortcut() {
   store.resetSearch();
 }
 
-useKeyboard({ onEscape: handleEscapeShortcut });
+useKeyboard({
+  onEscape: handleEscapeShortcut,
+  onOpenSettings: handleOpenSettingsShortcut,
+});
 
 function handleInteractionCancel() {
   activePreviewNote.value = null;
