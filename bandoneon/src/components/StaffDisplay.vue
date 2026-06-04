@@ -18,12 +18,26 @@
       </div>
     </div>
 
+    <p
+      v-if="showPlayHint"
+      class="mb-2 text-[11px] leading-snug text-neutral-500 dark:text-neutral-400"
+    >
+      {{ t('staff_play_hint') }}
+    </p>
+
     <svg
-      class="block h-84 w-full flex-1 sm:h-[26rem] lg:h-full"
+      ref="svgEl"
+      class="block h-84 w-full flex-1 touch-none sm:h-[26rem] lg:h-full"
+      :class="gestureActive ? 'cursor-grabbing' : 'cursor-crosshair'"
       viewBox="0 0 1120 560"
       preserveAspectRatio="xMidYMid meet"
       shape-rendering="geometricPrecision"
       text-rendering="optimizeLegibility"
+      @pointerdown.capture.prevent="onSvgPointerDown"
+      @pointermove.prevent="onSvgPointerMove"
+      @pointerup="onSvgPointerEnd"
+      @pointercancel="onSvgPointerEnd"
+      @lostpointercapture="onSvgPointerEnd"
     >
       <rect
         x="22"
@@ -128,6 +142,32 @@
         stroke-width="1.8"
       />
 
+      <rect
+        v-for="staff in staffHitAreas"
+        :key="`hit-${staff.id}`"
+        :x="STAFF_LAYOUT.noteArea.left"
+        :y="staff.top"
+        :width="STAFF_LAYOUT.noteArea.right - STAFF_LAYOUT.noteArea.left"
+        :height="staff.height"
+        fill="transparent"
+        :pointer-events="staff.active ? 'all' : 'none'"
+      />
+
+      <g v-if="pointerPreview" pointer-events="none">
+        <ellipse
+          :cx="pointerPreview.x"
+          :cy="pointerPreview.y"
+          rx="21"
+          ry="16"
+          :fill="pointerPreview.color"
+          fill-opacity="0.35"
+          stroke="currentColor"
+          stroke-opacity="0.5"
+          stroke-width="1.5"
+          :transform="`rotate(-24 ${pointerPreview.x} ${pointerPreview.y})`"
+        />
+      </g>
+
       <g v-for="(item, index) in noteLayout" :key="`${item.note}-${index}`">
         <line
           v-for="ledger in item.ledgerLines"
@@ -152,11 +192,18 @@
         >
           {{ item.accidental }}
         </text>
-        <g
-          :class="item.interactive ? 'cursor-pointer' : ''"
-          @pointerdown.prevent="handleNoteStart(item.note)"
-          @pointerenter="handleNoteHover(item.note)"
-        >
+        <g pointer-events="none">
+          <ellipse
+            v-if="item.isFocused"
+            :cx="item.x"
+            :cy="item.y"
+            rx="24"
+            ry="18"
+            fill="none"
+            :stroke="item.focusStroke"
+            stroke-width="2.5"
+            :transform="`rotate(-24 ${item.x} ${item.y})`"
+          />
           <line
             :x1="item.stemX"
             :x2="item.stemX"
@@ -164,25 +211,17 @@
             :y2="item.stemEndY"
             stroke="currentColor"
             stroke-linecap="round"
-            stroke-opacity="0.94"
+            :stroke-opacity="item.stemOpacity"
             stroke-width="2"
           />
           <path
             :d="noteheadPath"
-            fill="currentColor"
-            fill-opacity="0.96"
+            :fill="item.fill"
+            :fill-opacity="item.fillOpacity"
             stroke="currentColor"
-            stroke-opacity="0.24"
+            :stroke-opacity="item.strokeOpacity"
             stroke-width="1"
             :transform="`translate(${item.x} ${item.y}) scale(1.6) rotate(-24)`"
-          />
-          <ellipse
-            v-if="item.interactive"
-            :cx="item.x"
-            :cy="item.y"
-            rx="21"
-            ry="16"
-            fill="transparent"
           />
         </g>
       </g>
@@ -219,11 +258,17 @@
 <script setup lang="ts">
 import { useI18n } from 'petite-vue-i18n';
 import { Note } from 'tonal';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import {
+  matchStaffPointerNote,
+  staffInteractionBounds,
+  STAFF_LAYOUT,
+  staffY,
+  type StaffName,
+} from '../utils/staffPointer';
 import { resolveStaffDisplayNote } from '../utils/staffNotation';
 import { resolveSelectionTonality } from '../utils/tonality';
 
-type StaffName = 'treble' | 'bass';
 type DisplayNote = {
   note: string;
   accidental: string;
@@ -231,11 +276,16 @@ type DisplayNote = {
   y: number;
   staff: StaffName;
   ledgerLines: number[];
-  interactive: boolean;
   stemUp: boolean;
   stemX: number;
   stemStartY: number;
   stemEndY: number;
+  fill: string;
+  fillOpacity: number;
+  strokeOpacity: number;
+  stemOpacity: number;
+  isFocused: boolean;
+  focusStroke: string;
 };
 
 const noteheadPath =
@@ -258,20 +308,26 @@ const props = defineProps<{
   scaleType: string | null;
   chordType: string | null;
   preferFlats?: boolean;
-  interactiveNotes?: string[];
+  playableNotes: string[];
+  activeNotes?: Record<string, boolean>;
+  gestureFocusNote?: string | null;
+  gestureActive?: boolean;
+  gestureMode?: 'paint' | 'erase';
 }>();
 
 const { t } = useI18n({ useScope: 'global' });
 
-const lineSpacing = 27;
-const staffTop = {
-  treble: 106,
-  bass: 342,
-} as const;
-const bottomLineIndex = {
-  treble: diatonicIndex('E4'),
-  bass: diatonicIndex('G2'),
-} as const;
+const svgEl = ref<SVGSVGElement | null>(null);
+const activePointerId = ref<number | null>(null);
+const pointerPreview = ref<{
+  x: number;
+  y: number;
+  color: string;
+} | null>(null);
+
+const lineSpacing = STAFF_LAYOUT.lineSpacing;
+const staffTop = STAFF_LAYOUT.staffTop;
+const bottomLineIndex = STAFF_LAYOUT.bottomLineIndex;
 const topLineIndex = {
   treble: diatonicIndex('F5'),
   bass: diatonicIndex('A3'),
@@ -280,11 +336,25 @@ const middleLineY = {
   treble: staffTop.treble + lineSpacing * 2,
   bass: staffTop.bass + lineSpacing * 2,
 } as const;
-const interactiveNoteSet = computed(
-  () => new Set(props.interactiveNotes ?? []),
-);
 const activeStaff = computed<StaffName>(() =>
   props.hand === 'right' ? 'treble' : 'bass',
+);
+const showPlayHint = computed(
+  () => props.notes.length === 0 && props.playableNotes.length > 0,
+);
+const staffHitAreas = computed(() =>
+  (['treble', 'bass'] as const).map((id) => {
+    const notes =
+      id === activeStaff.value ? props.playableNotes : ([] as string[]);
+    const bounds = staffInteractionBounds(id, notes);
+
+    return {
+      id,
+      top: bounds.top,
+      height: bounds.bottom - bounds.top,
+      active: id === activeStaff.value,
+    };
+  }),
 );
 
 const staffLines = [
@@ -461,6 +531,11 @@ const noteLayout = computed<DisplayNote[]>(() => {
     const stemX = x + (stemUp ? 7.2 : -7.2);
     const stemStartY = y + (stemUp ? -2 : 2);
 
+    const isActive = Boolean(props.activeNotes?.[note]);
+    const isFocused = props.gestureFocusNote === note;
+    const noteColor = props.noteColors[note];
+    const eraseFocus = props.gestureMode === 'erase';
+
     return {
       note,
       accidental,
@@ -468,11 +543,18 @@ const noteLayout = computed<DisplayNote[]>(() => {
       y,
       staff,
       ledgerLines: getLedgerLines(normalizedNote, staff),
-      interactive: interactiveNoteSet.value.has(note),
       stemUp,
       stemX,
       stemStartY,
       stemEndY: stemStartY + (stemUp ? -stemLength : stemLength),
+      fill: isActive && noteColor ? noteColor : 'currentColor',
+      fillOpacity: isActive ? 0.98 : isFocused ? 0.72 : 0.42,
+      strokeOpacity: isActive ? 0.35 : 0.18,
+      stemOpacity: isActive ? 0.98 : 0.55,
+      isFocused,
+      focusStroke: eraseFocus
+        ? 'rgba(245, 158, 11, 0.95)'
+        : 'rgba(16, 185, 129, 0.95)',
     };
   });
 });
@@ -550,12 +632,6 @@ function diatonicIndex(note: string) {
   return octave * 7 + parsed.step;
 }
 
-function staffY(note: string, staff: StaffName) {
-  const bottomY = staffTop[staff] + lineSpacing * 4;
-  const stepsFromBottom = diatonicIndex(note) - bottomLineIndex[staff];
-  return bottomY - stepsFromBottom * (lineSpacing / 2);
-}
-
 function getLedgerLines(note: string, staff: StaffName) {
   const result: number[] = [];
   const noteIndex = diatonicIndex(note);
@@ -585,13 +661,89 @@ function indexToNote(index: number) {
   return `${['C', 'D', 'E', 'F', 'G', 'A', 'B'][step]}${octave}`;
 }
 
-function handleNoteStart(note: string) {
-  if (!interactiveNoteSet.value.has(note)) return;
+function clientToSvgPoint(event: PointerEvent) {
+  const svg = svgEl.value;
+  if (!svg) return null;
+
+  const point = svg.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  const matrix = svg.getScreenCTM();
+  if (!matrix) return null;
+
+  return point.matrixTransform(matrix.inverse());
+}
+
+function resolvePointerNote(event: PointerEvent) {
+  const point = clientToSvgPoint(event);
+  if (!point) return null;
+
+  return matchStaffPointerNote({
+    x: point.x,
+    y: point.y,
+    staff: activeStaff.value,
+    playableNotes: props.playableNotes,
+  });
+}
+
+function updatePointerPreview(event: PointerEvent) {
+  const point = clientToSvgPoint(event);
+  const note = resolvePointerNote(event);
+  if (!point || !note) {
+    pointerPreview.value = null;
+    return;
+  }
+
+  pointerPreview.value = {
+    x: Math.min(
+      STAFF_LAYOUT.noteArea.right - 28,
+      Math.max(STAFF_LAYOUT.noteArea.left + 28, point.x),
+    ),
+    y: staffY(note, activeStaff.value),
+    color: props.noteColors[note] ?? '#0ea5e9',
+  };
+}
+
+function onSvgPointerDown(event: PointerEvent) {
+  if (event.button !== 0) return;
+  if (
+    activePointerId.value !== null &&
+    activePointerId.value !== event.pointerId
+  ) {
+    return;
+  }
+
+  const note = resolvePointerNote(event);
+  if (!note) return;
+
+  activePointerId.value = event.pointerId;
+  if (event.currentTarget instanceof SVGSVGElement) {
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  updatePointerPreview(event);
   emit('start', note);
 }
 
-function handleNoteHover(note: string) {
-  if (!interactiveNoteSet.value.has(note)) return;
-  emit('hover', note);
+function onSvgPointerMove(event: PointerEvent) {
+  if (activePointerId.value !== event.pointerId) {
+    if (!props.gestureActive) {
+      updatePointerPreview(event);
+    }
+    return;
+  }
+
+  const note = resolvePointerNote(event);
+  updatePointerPreview(event);
+  if (note) {
+    emit('hover', note);
+  }
+}
+
+function onSvgPointerEnd(event: PointerEvent) {
+  if (activePointerId.value !== event.pointerId) return;
+
+  activePointerId.value = null;
+  pointerPreview.value = null;
 }
 </script>

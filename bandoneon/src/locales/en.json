@@ -28,6 +28,7 @@
   "staff": "Staff",
   "staff_notes": "notes",
   "staff_empty": "No notes to show yet.",
+  "staff_play_hint": "Click or drag on the staff and ledger lines (right hand = treble, left = bass) to play and see notes appear.",
   "staff_live_phrase": "Live phrase",
   "staff_recent_phrase": "Recent phrase",
   "staff_manual_selection": "Current manual selection",

@@ -28,6 +28,7 @@
   "staff": "Notensystem",
   "staff_notes": "Noten",
   "staff_empty": "Noch keine Noten zum Anzeigen.",
+  "staff_play_hint": "Klicke oder ziehe im Notensystem und auf Hilfslinien (rechte Hand = Violinschlüssel, linke = Bassschlüssel), um Töne zu spielen und anzuzeigen.",
   "staff_live_phrase": "Live-Phrase",
   "staff_recent_phrase": "Letzte Phrase",
   "staff_manual_selection": "Aktuelle manuelle Auswahl",

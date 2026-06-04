@@ -28,6 +28,7 @@
   "staff": "pentagrama",
   "staff_notes": "notas",
   "staff_empty": "Todavía no hay notas para mostrar.",
+  "staff_play_hint": "Hacé clic o arrastrá en el pentagrama y en las líneas adicionales (mano derecha = clave de sol, izquierda = fa) para tocar y ver las notas.",
   "staff_live_phrase": "Frase en tiempo real",
   "staff_recent_phrase": "Frase reciente",
   "staff_manual_selection": "Selección manual actual",

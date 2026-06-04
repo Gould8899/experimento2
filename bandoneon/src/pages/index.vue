@@ -171,7 +171,11 @@
                 :scale-type="scaleType"
                 :chord-type="chordType"
                 :prefer-flats="showEnharmonics"
-                :interactive-notes="visibleNotes"
+                :playable-notes="staffPlayableNotes"
+                :active-notes="staffActiveNotes"
+                :gesture-focus-note="gestureFocusNote"
+                :gesture-active="gestureActive"
+                :gesture-mode="gestureMode"
                 @start="onStaffStart"
                 @hover="onStaffHover"
               />
@@ -421,9 +425,11 @@ const recentPlaybackGroups = ref<number[]>([]);
 const currentGesturePlaybackCount = ref(0);
 const activePreviewNote = ref<string | null>(null);
 const gestureFocusNote = computed(() => lastGestureNote.value);
-const staffDismissed = ref(true);
 
 const visibleNotes = computed(() => keyPositions.value.map((item) => item[2]));
+const staffPlayableNotes = computed(() =>
+  visibleNotes.value.filter((note) => isPlayableBandoneonNote(note)),
+);
 const currentHand = computed(() => side.value);
 const otherHand = computed(() => (side.value === 'right' ? 'left' : 'right'));
 
@@ -593,7 +599,6 @@ const resetUserSelection = () => {
   lastGestureNote.value = null;
   activePreviewNote.value = null;
   clearRecentPlayback();
-  staffDismissed.value = true;
   stopAll();
 };
 
@@ -689,11 +694,13 @@ function isPlayableBandoneonNote(note: string) {
   return isHarmonicNote(note);
 }
 
-const staffState = computed(() => {
-  if (staffDismissed.value) {
-    return { notes: [], source: 'idle' as const };
-  }
+const staffActiveNotes = computed(() => {
+  if (gestureActive.value) return gestureSelection.value;
+  if (isModified.value) return userSelection.value;
+  return {};
+});
 
+const staffState = computed(() => {
   if (gestureActive.value) {
     return {
       notes:
@@ -723,9 +730,8 @@ const staffState = computed(() => {
 const staffNotes = computed(() => staffState.value.notes);
 const staffGroupBreaks = computed(() => {
   if (
-    staffDismissed.value ||
-    (staffState.value.source !== 'gesture' &&
-      staffState.value.source !== 'recent')
+    staffState.value.source !== 'gesture' &&
+    staffState.value.source !== 'recent'
   ) {
     return [] as number[];
   }
@@ -797,7 +803,6 @@ function beginGesture(note: string, playable: boolean) {
   if (!playable) return;
   if (gestureActive.value && lastGestureNote.value === note) return;
 
-  staffDismissed.value = false;
   currentGesturePlaybackCount.value = 0;
   gestureActive.value = true;
   gestureBaseSelection.value = {
