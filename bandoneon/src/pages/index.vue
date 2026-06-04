@@ -171,7 +171,8 @@
                 :scale-type="scaleType"
                 :chord-type="chordType"
                 :prefer-flats="showEnharmonics"
-                :playable-notes="staffPlayableNotes"
+                :treble-playable-notes="treblePlayableNotes"
+                :bass-playable-notes="bassPlayableNotes"
                 :active-notes="staffActiveNotes"
                 :gesture-focus-note="gestureFocusNote"
                 :gesture-active="gestureActive"
@@ -306,6 +307,7 @@ import {
   resolveStaffState,
   takeRecentPlaybackNotes,
 } from '../utils/staffState';
+import { handForStaff, type StaffName } from '../utils/staffPointer';
 
 // Main exploration view for the instrument: chords, scales, overlays and manual edits.
 const { t } = useI18n({ useScope: 'global' });
@@ -427,9 +429,6 @@ const activePreviewNote = ref<string | null>(null);
 const gestureFocusNote = computed(() => lastGestureNote.value);
 
 const visibleNotes = computed(() => keyPositions.value.map((item) => item[2]));
-const staffPlayableNotes = computed(() =>
-  visibleNotes.value.filter((note) => isPlayableBandoneonNote(note)),
-);
 const currentHand = computed(() => side.value);
 const otherHand = computed(() => (side.value === 'right' ? 'left' : 'right'));
 
@@ -680,6 +679,32 @@ const pianoMutedNoteSet = computed(() => new Set(pianoMutedNotes.value));
 const pianoSecondaryNoteSet = computed(
   () => new Set(pianoSecondaryNotes.value),
 );
+
+function setHand(hand: 'left' | 'right') {
+  if (side.value !== hand) {
+    store.$patch({ side: hand });
+  }
+}
+
+function playableNotesForHand(hand: 'left' | 'right') {
+  const notes = getInstrumentNotesForSide(instrument.value, hand);
+
+  return notes.filter((note) => {
+    if (pianoMutedNoteSet.value.has(note)) return false;
+
+    if (hand === currentHand.value) {
+      return (
+        visibleNotes.value.includes(note) &&
+        !pianoSecondaryNoteSet.value.has(note)
+      );
+    }
+
+    return otherHandExclusiveNotes.value.includes(note);
+  });
+}
+
+const treblePlayableNotes = computed(() => playableNotesForHand('right'));
+const bassPlayableNotes = computed(() => playableNotesForHand('left'));
 
 function isPlayablePianoNote(note: string) {
   if (!visibleNotes.value.includes(note)) return false;
@@ -968,7 +993,11 @@ function onBandoneonStart(note: string) {
 }
 
 function onPianoStart(note: string) {
-  beginGesture(note, isPlayablePianoNote(note));
+  if (pianoSecondaryNoteSet.value.has(note)) {
+    setHand(otherHand.value);
+  }
+
+  beginGesture(note, isPlayableBandoneonNote(note));
 }
 
 function onBandoneonHover(note: string) {
@@ -977,20 +1006,26 @@ function onBandoneonHover(note: string) {
   handleGestureNote(note, isPlayableBandoneonNote(note));
 }
 
-function onStaffStart(note: string) {
+function onStaffStart(note: string, staff: StaffName) {
+  setHand(handForStaff(staff));
   beginGesture(note, isPlayableBandoneonNote(note));
 }
 
-function onStaffHover(note: string) {
+function onStaffHover(note: string, staff: StaffName) {
   if (!gestureActive.value) return;
 
+  setHand(handForStaff(staff));
   handleGestureNote(note, isPlayableBandoneonNote(note));
 }
 
 function onPianoHover(note: string) {
   if (!gestureActive.value) return;
 
-  handleGestureNote(note, isPlayablePianoNote(note));
+  if (pianoSecondaryNoteSet.value.has(note)) {
+    setHand(otherHand.value);
+  }
+
+  handleGestureNote(note, isPlayableBandoneonNote(note));
 }
 
 const onReset = () => {

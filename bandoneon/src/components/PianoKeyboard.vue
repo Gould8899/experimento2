@@ -366,6 +366,10 @@ function isPlayable(key: PianoKey) {
   return key.available && !key.secondary && !key.muted;
 }
 
+function acceptsPointer(key: PianoKey) {
+  return key.available && !key.muted;
+}
+
 function withAlpha(color: string, alpha: string) {
   if (/^#[0-9a-f]{6}$/i.test(color)) {
     return `${color}${alpha}`;
@@ -404,18 +408,24 @@ function onKeyboardPointerDown(event: PointerEvent) {
   }
 
   const note = resolvePointerNote(event);
-  if (note) {
-    emit('start', note);
-  }
+  if (!note) return;
+
+  const key = keys.value.find((item) => item.note === note);
+  if (!key || !acceptsPointer(key)) return;
+
+  emit('start', note);
 }
 
 function onKeyboardPointerMove(event: PointerEvent) {
   if (activePointerId.value !== event.pointerId) return;
 
   const note = resolvePointerNote(event);
-  if (note) {
-    emit('hover', note);
-  }
+  if (!note) return;
+
+  const key = keys.value.find((item) => item.note === note);
+  if (!key || !acceptsPointer(key)) return;
+
+  emit('hover', note);
 }
 
 function onKeyboardPointerEnd(event: PointerEvent) {

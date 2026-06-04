@@ -85,6 +85,39 @@ export function staffInteractionBounds(
   };
 }
 
+export function staffForHand(hand: 'left' | 'right'): StaffName {
+  return hand === 'right' ? 'treble' : 'bass';
+}
+
+export function handForStaff(staff: StaffName): 'left' | 'right' {
+  return staff === 'treble' ? 'right' : 'left';
+}
+
+/** Which clef staff was clicked from vertical position. */
+export function resolveStaffFromY(
+  y: number,
+  treblePlayable: string[] = [],
+  bassPlayable: string[] = [],
+): StaffName | null {
+  const trebleBounds = staffInteractionBounds('treble', treblePlayable);
+  const bassBounds = staffInteractionBounds('bass', bassPlayable);
+  const inTreble = y >= trebleBounds.top && y <= trebleBounds.bottom;
+  const inBass = y >= bassBounds.top && y <= bassBounds.bottom;
+
+  if (inTreble && !inBass) return 'treble';
+  if (inBass && !inTreble) return 'bass';
+  if (!inTreble && !inBass) return null;
+
+  const trebleCenter =
+    STAFF_LAYOUT.staffTop.treble + (STAFF_LAYOUT.lineSpacing * 4) / 2;
+  const bassCenter =
+    STAFF_LAYOUT.staffTop.bass + (STAFF_LAYOUT.lineSpacing * 4) / 2;
+
+  return Math.abs(y - trebleCenter) <= Math.abs(y - bassCenter)
+    ? 'treble'
+    : 'bass';
+}
+
 export function isPointInStaffArea(
   x: number,
   y: number,

@@ -149,8 +149,10 @@
         :y="staff.top"
         :width="STAFF_LAYOUT.noteArea.right - STAFF_LAYOUT.noteArea.left"
         :height="staff.height"
-        fill="transparent"
-        :pointer-events="staff.active ? 'all' : 'none'"
+        :class="staff.active ? 'cursor-crosshair' : 'cursor-pointer'"
+        :fill="staff.active ? 'transparent' : 'currentColor'"
+        :fill-opacity="staff.active ? 0 : 0.04"
+        pointer-events="all"
       />
 
       <g v-if="pointerPreview" pointer-events="none">
@@ -261,6 +263,7 @@ import { Note } from 'tonal';
 import { computed, ref } from 'vue';
 import {
   matchStaffPointerNote,
+  resolveStaffFromY,
   staffInteractionBounds,
   STAFF_LAYOUT,
   staffY,
@@ -294,8 +297,8 @@ const clefFontFamily =
   "'Noto Music', 'Segoe UI Symbol', 'Arial Unicode MS', 'Times New Roman', serif";
 
 const emit = defineEmits<{
-  start: [note: string];
-  hover: [note: string];
+  start: [note: string, staff: StaffName];
+  hover: [note: string, staff: StaffName];
 }>();
 
 const props = defineProps<{
@@ -308,7 +311,8 @@ const props = defineProps<{
   scaleType: string | null;
   chordType: string | null;
   preferFlats?: boolean;
-  playableNotes: string[];
+  treblePlayableNotes: string[];
+  bassPlayableNotes: string[];
   activeNotes?: Record<string, boolean>;
   gestureFocusNote?: string | null;
   gestureActive?: boolean;
@@ -340,12 +344,15 @@ const activeStaff = computed<StaffName>(() =>
   props.hand === 'right' ? 'treble' : 'bass',
 );
 const showPlayHint = computed(
-  () => props.notes.length === 0 && props.playableNotes.length > 0,
+  () =>
+    props.notes.length === 0 &&
+    (props.treblePlayableNotes.length > 0 ||
+      props.bassPlayableNotes.length > 0),
 );
 const staffHitAreas = computed(() =>
   (['treble', 'bass'] as const).map((id) => {
     const notes =
-      id === activeStaff.value ? props.playableNotes : ([] as string[]);
+      id === 'treble' ? props.treblePlayableNotes : props.bassPlayableNotes;
     const bounds = staffInteractionBounds(id, notes);
 
     return {
@@ -356,6 +363,10 @@ const staffHitAreas = computed(() =>
     };
   }),
 );
+const playableNotesByStaff = computed(() => ({
+  treble: props.treblePlayableNotes,
+  bass: props.bassPlayableNotes,
+}));
 
 const staffLines = [
   {
@@ -534,6 +545,7 @@ const noteLayout = computed<DisplayNote[]>(() => {
     const isActive = Boolean(props.activeNotes?.[note]);
     const isFocused = props.gestureFocusNote === note;
     const noteColor = props.noteColors[note];
+    const hasColor = Boolean(noteColor);
     const eraseFocus = props.gestureMode === 'erase';
 
     return {
@@ -547,10 +559,10 @@ const noteLayout = computed<DisplayNote[]>(() => {
       stemX,
       stemStartY,
       stemEndY: stemStartY + (stemUp ? -stemLength : stemLength),
-      fill: isActive && noteColor ? noteColor : 'currentColor',
-      fillOpacity: isActive ? 0.98 : isFocused ? 0.72 : 0.42,
-      strokeOpacity: isActive ? 0.35 : 0.18,
-      stemOpacity: isActive ? 0.98 : 0.55,
+      fill: hasColor ? noteColor! : 'currentColor',
+      fillOpacity: isActive ? 0.98 : isFocused ? 0.9 : hasColor ? 0.82 : 0.48,
+      strokeOpacity: isActive ? 0.35 : hasColor ? 0.22 : 0.18,
+      stemOpacity: isActive ? 0.98 : hasColor ? 0.88 : 0.55,
       isFocused,
       focusStroke: eraseFocus
         ? 'rgba(245, 158, 11, 0.95)'
@@ -674,22 +686,35 @@ function clientToSvgPoint(event: PointerEvent) {
   return point.matrixTransform(matrix.inverse());
 }
 
-function resolvePointerNote(event: PointerEvent) {
+function resolvePointerStaff(event: PointerEvent) {
   const point = clientToSvgPoint(event);
   if (!point) return null;
+
+  return resolveStaffFromY(
+    point.y,
+    props.treblePlayableNotes,
+    props.bassPlayableNotes,
+  );
+}
+
+function resolvePointerNote(event: PointerEvent) {
+  const point = clientToSvgPoint(event);
+  const staff = resolvePointerStaff(event);
+  if (!point || !staff) return null;
 
   return matchStaffPointerNote({
     x: point.x,
     y: point.y,
-    staff: activeStaff.value,
-    playableNotes: props.playableNotes,
+    staff,
+    playableNotes: playableNotesByStaff.value[staff],
   });
 }
 
 function updatePointerPreview(event: PointerEvent) {
   const point = clientToSvgPoint(event);
+  const staff = resolvePointerStaff(event);
   const note = resolvePointerNote(event);
-  if (!point || !note) {
+  if (!point || !staff || !note) {
     pointerPreview.value = null;
     return;
   }
@@ -699,7 +724,7 @@ function updatePointerPreview(event: PointerEvent) {
       STAFF_LAYOUT.noteArea.right - 28,
       Math.max(STAFF_LAYOUT.noteArea.left + 28, point.x),
     ),
-    y: staffY(note, activeStaff.value),
+    y: staffY(note, staff),
     color: props.noteColors[note] ?? '#0ea5e9',
   };
 }
@@ -713,8 +738,9 @@ function onSvgPointerDown(event: PointerEvent) {
     return;
   }
 
+  const staff = resolvePointerStaff(event);
   const note = resolvePointerNote(event);
-  if (!note) return;
+  if (!staff || !note) return;
 
   activePointerId.value = event.pointerId;
   if (event.currentTarget instanceof SVGSVGElement) {
@@ -722,7 +748,7 @@ function onSvgPointerDown(event: PointerEvent) {
   }
 
   updatePointerPreview(event);
-  emit('start', note);
+  emit('start', note, staff);
 }
 
 function onSvgPointerMove(event: PointerEvent) {
@@ -733,10 +759,11 @@ function onSvgPointerMove(event: PointerEvent) {
     return;
   }
 
+  const staff = resolvePointerStaff(event);
   const note = resolvePointerNote(event);
   updatePointerPreview(event);
-  if (note) {
-    emit('hover', note);
+  if (staff && note) {
+    emit('hover', note, staff);
   }
 }
 

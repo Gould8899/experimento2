@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  handForStaff,
   isPointInStaffArea,
   matchStaffPointerNote,
+  resolveStaffFromY,
   resolveStaffPitchFromY,
+  staffForHand,
   staffInteractionBounds,
   staffY,
 } from '../src/utils/staffPointer';
@@ -65,6 +68,21 @@ describe('staffPointer', () => {
         playableNotes,
       }),
     ).toBe('C2');
+  });
+
+  it('maps staff and hand helpers', () => {
+    expect(staffForHand('right')).toBe('treble');
+    expect(staffForHand('left')).toBe('bass');
+    expect(handForStaff('treble')).toBe('right');
+    expect(handForStaff('bass')).toBe('left');
+  });
+
+  it('resolves treble vs bass from vertical position', () => {
+    const trebleY = staffY('G4', 'treble');
+    const bassY = staffY('G2', 'bass');
+
+    expect(resolveStaffFromY(trebleY, ['G4'], ['G2'])).toBe('treble');
+    expect(resolveStaffFromY(bassY, ['G4'], ['G2'])).toBe('bass');
   });
 
   it('returns null when the click is far from any playable note', () => {
