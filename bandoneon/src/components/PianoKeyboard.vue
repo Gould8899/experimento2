@@ -15,37 +15,8 @@
         >
           {{ t('piano_map') }}
         </div>
-        <div
-          :class="
-            compact
-              ? 'text-xs font-semibold tracking-tight'
-              : 'text-sm font-semibold tracking-tight'
-          "
-        >
+        <div class="text-sm font-semibold tracking-tight">
           {{ subtitle }}
-        </div>
-        <div
-          v-if="showScaleLegend"
-          class="mt-1 flex flex-wrap gap-2 text-[10px] font-medium text-neutral-500 dark:text-neutral-400"
-        >
-          <span class="inline-flex items-center gap-1">
-            <span
-              class="h-2.5 w-2.5 rounded-full bg-emerald-500 shadow-[inset_0_-1px_0_rgba(0,0,0,0.16)]"
-            />
-            {{ t('current_hand') }}
-          </span>
-          <span class="inline-flex items-center gap-1">
-            <span
-              class="h-2.5 w-2.5 rounded-full bg-black shadow-[inset_0_-1px_0_rgba(255,255,255,0.04)] dark:bg-black"
-            />
-            {{ t('inactive_range') }}
-          </span>
-          <span class="inline-flex items-center gap-1">
-            <span
-              class="h-2.5 w-2.5 rounded-full bg-neutral-400 dark:bg-neutral-600"
-            />
-            {{ t('out_of_scale') }}
-          </span>
         </div>
       </div>
     </div>
@@ -53,47 +24,48 @@
     <div
       ref="keyboardEl"
       :class="[
-        'relative touch-none overflow-hidden rounded-xl bg-neutral-300 p-px dark:bg-neutral-900',
-        compact ? 'h-24 sm:h-26' : 'h-36',
+        'relative touch-none overflow-hidden rounded-xl border border-neutral-800/80',
+        compact ? 'h-24 sm:h-28' : 'h-36',
         props.gestureActive ? 'cursor-grabbing' : 'cursor-crosshair',
       ]"
+      :style="{ background: PIANO_THEME.keyboardBg }"
       @pointerdown.capture.prevent="onKeyboardPointerDown"
       @pointermove.prevent="onKeyboardPointerMove"
       @pointerup="onKeyboardPointerEnd"
       @pointercancel="onKeyboardPointerEnd"
       @lostpointercapture="onKeyboardPointerEnd"
     >
+      <div
+        v-for="(zone, index) in secondaryZones"
+        :key="`inactive-${index}`"
+        class="pointer-events-none absolute inset-y-0 z-10"
+        :style="{
+          left: `${zone.left}%`,
+          width: `${zone.width}%`,
+          background: PIANO_THEME.inactiveHand,
+        }"
+      />
+
       <button
         v-for="key in whiteKeys"
         :key="key.note"
-        :class="[
-          'absolute top-0 right-auto bottom-0 z-10 overflow-hidden transition',
-          key.secondary
-            ? 'rounded-none border-0'
-            : 'rounded-b-lg border border-neutral-300 dark:border-neutral-700',
-          key.available && !key.secondary
-            ? 'hover:border-neutral-500'
-            : !key.secondary
-              ? 'dark:border-neutral-800'
-              : '',
-          !isPlayable(key)
-            ? 'cursor-default'
-            : props.gestureActive
-              ? 'cursor-grabbing'
-              : 'cursor-crosshair',
-        ]"
+        :class="whiteKeyClass(key)"
         :style="whiteKeyStyle(key)"
         :title="formatLabel(key.note)"
-        :aria-disabled="!isPlayable(key)"
+        :aria-disabled="!acceptsPointer(key)"
         type="button"
       >
         <span
-          :class="[
-            'pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-medium',
-            key.secondary
-              ? 'opacity-0'
-              : 'text-neutral-500 dark:text-neutral-400',
-          ]"
+          v-if="keyRole(key) !== 'secondary'"
+          class="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-semibold tracking-tight"
+          :class="labelClass(key)"
+        >
+          {{ compactLabel(key.note) }}
+        </span>
+        <span
+          v-else
+          class="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] font-semibold tracking-tight"
+          :style="{ color: PIANO_THEME.inactiveLabel }"
         >
           {{ compactLabel(key.note) }}
         </span>
@@ -102,37 +74,54 @@
       <button
         v-for="key in blackKeys"
         :key="key.note"
-        :class="[
-          'absolute top-0 z-30 transition',
-          key.secondary
-            ? 'rounded-none border-0 text-transparent'
-            : 'rounded-b-lg border border-neutral-950 text-white shadow-sm',
-          !isPlayable(key)
-            ? 'cursor-default'
-            : props.gestureActive
-              ? 'cursor-grabbing'
-              : 'cursor-crosshair',
-        ]"
+        :class="blackKeyClass(key)"
         :style="blackKeyStyle(key)"
         :title="formatLabel(key.note)"
-        :aria-disabled="!isPlayable(key)"
+        :aria-disabled="!acceptsPointer(key)"
         type="button"
       >
         <span
-          class="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] font-medium"
-          :class="
-            key.secondary
-              ? 'opacity-0'
-              : key.active
-                ? 'opacity-100'
-                : key.secondary || isPlayable(key)
-                  ? 'opacity-80'
-                  : 'opacity-45'
-          "
+          class="pointer-events-none absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] font-semibold tracking-tight"
+          :class="labelClass(key)"
+          :style="keyRole(key) === 'secondary' ? { color: PIANO_THEME.inactiveLabel } : undefined"
         >
           {{ compactLabel(key.note) }}
         </span>
       </button>
+    </div>
+
+    <div
+      v-if="showLegend"
+      class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[10px] text-neutral-500 dark:text-neutral-400"
+    >
+      <span class="inline-flex items-center gap-1.5">
+        <span
+          class="h-2 w-4 rounded-sm shadow-[inset_0_-2px_0_rgba(0,0,0,0.22)] ring-1 ring-white/40"
+          :style="{ background: PIANO_THEME.legendSelected }"
+        />
+        {{ t('piano_legend_selected') }}
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <span
+          class="h-2 w-4 rounded-sm ring-1 ring-black/10"
+          :style="{ background: PIANO_THEME.legendPlayable }"
+        />
+        {{ t('piano_legend_playable') }}
+      </span>
+      <span class="inline-flex items-center gap-1.5">
+        <span
+          class="h-2 w-4 rounded-sm border border-neutral-800"
+          :style="{ background: PIANO_THEME.inactiveHand }"
+        />
+        {{ t('inactive_range') }}
+      </span>
+      <span
+        v-if="mutedNoteSet.size > 0"
+        class="inline-flex items-center gap-1.5"
+      >
+        <span class="h-2 w-4 rounded-sm border border-dashed border-neutral-400 bg-muted-stripe" />
+        {{ t('out_of_scale') }}
+      </span>
     </div>
   </div>
 </template>
@@ -141,7 +130,9 @@
 import { useI18n } from 'petite-vue-i18n';
 import { Note } from 'tonal';
 import { computed, ref } from 'vue';
+import { PIANO_THEME } from '../constants/pianoTheme';
 import { resolvePointedPianoNote } from '../utils/pianoGeometry';
+import { octaveColorForNote, withHexAlpha } from '../utils/octaveColor';
 import { formatDisplayedNote } from '../utils/staffNotation';
 
 type PianoKey = {
@@ -152,6 +143,13 @@ type PianoKey = {
   muted: boolean;
   left: number;
   isBlack: boolean;
+};
+
+type KeyRole = 'primary' | 'secondary' | 'muted' | 'unavailable';
+
+type SecondaryZone = {
+  left: number;
+  width: number;
 };
 
 const props = defineProps<{
@@ -172,20 +170,18 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  start: [note: string];
-  hover: [note: string];
+  start: [note: string, options?: { additive?: boolean }];
+  hover: [note: string, options?: { additive?: boolean }];
 }>();
 
 const { t } = useI18n({ useScope: 'global' });
 const keyboardEl = ref<HTMLDivElement | null>(null);
 const activePointerId = ref<number | null>(null);
+const pointerAdditive = ref(false);
 
 const availableNoteSet = computed(() => new Set(props.availableNotes));
 const secondaryNoteSet = computed(() => new Set(props.secondaryNotes ?? []));
 const mutedNoteSet = computed(() => new Set(props.mutedNotes ?? []));
-const showScaleLegend = computed(
-  () => secondaryNoteSet.value.size > 0 || mutedNoteSet.value.size > 0,
-);
 
 const keys = computed(() => {
   const whiteKeyCount = props.notes.filter(
@@ -219,9 +215,46 @@ const blackKeys = computed(() => keys.value.filter((key) => key.isBlack));
 const whiteKeyWidth = computed(() => 100 / whiteKeys.value.length);
 const whiteKeyWidthRatio = computed(() => 1 / whiteKeys.value.length);
 const blackKeyWidthRatio = computed(() => whiteKeyWidthRatio.value * 0.64);
-const activeNoteCount = computed(
-  () => Object.values(props.activeNotes).filter(Boolean).length,
+
+const secondaryZones = computed(() => {
+  const secondaryWhites = whiteKeys.value
+    .filter((key) => key.secondary)
+    .sort((left, right) => left.left - right.left);
+
+  if (secondaryWhites.length === 0) {
+    return [] as SecondaryZone[];
+  }
+
+  const zones: SecondaryZone[] = [];
+  let zoneStart = secondaryWhites[0];
+  let zoneEnd = secondaryWhites[0];
+  const gapThreshold = whiteKeyWidthRatio.value * 1.25;
+
+  for (let index = 1; index < secondaryWhites.length; index += 1) {
+    const key = secondaryWhites[index];
+    const gap = key.left - zoneEnd.left;
+
+    if (gap <= gapThreshold) {
+      zoneEnd = key;
+      continue;
+    }
+
+    zones.push(createSecondaryZone(zoneStart, zoneEnd));
+    zoneStart = key;
+    zoneEnd = key;
+  }
+
+  zones.push(createSecondaryZone(zoneStart, zoneEnd));
+  return zones;
+});
+
+const showLegend = computed(
+  () =>
+    !props.compact ||
+    secondaryNoteSet.value.size > 0 ||
+    mutedNoteSet.value.size > 0,
 );
+
 const pointerWhiteKeys = computed(() =>
   whiteKeys.value.map((key) => ({
     note: key.note,
@@ -236,6 +269,35 @@ const pointerBlackKeys = computed(() =>
     width: blackKeyWidthRatio.value,
   })),
 );
+
+function createSecondaryZone(start: PianoKey, end: PianoKey): SecondaryZone {
+  const left = Math.max(0, start.left * 100);
+  const right = Math.min(100, (end.left + whiteKeyWidthRatio.value) * 100);
+
+  return {
+    left,
+    width: Math.max(whiteKeyWidthRatio.value * 100, right - left),
+  };
+}
+
+function keyRole(key: PianoKey): KeyRole {
+  if (key.secondary) return 'secondary';
+  if (!key.available) return 'unavailable';
+  if (key.muted) return 'muted';
+  return 'primary';
+}
+
+function octaveColor(note: string) {
+  return props.noteColors[note] || octaveColorForNote(note);
+}
+
+function isPlayable(key: PianoKey) {
+  return key.available && !key.secondary && !key.muted;
+}
+
+function acceptsPointer(key: PianoKey) {
+  return key.available && !key.muted;
+}
 
 function compactLabel(note: string) {
   return formatLabel(note).replace(/[0-9]/g, '');
@@ -252,127 +314,192 @@ function formatLabel(note: string) {
   );
 }
 
-function secondaryKeyStyle(key: PianoKey) {
-  const fill = '#232323';
-  const width = key.isBlack
-    ? `${whiteKeyWidth.value * 0.64 + 0.35}%`
-    : `${whiteKeyWidth.value + 0.35}%`;
+function labelClass(key: PianoKey) {
+  const role = keyRole(key);
+
+  if (role === 'secondary') {
+    return '';
+  }
+
+  if (role === 'muted' || role === 'unavailable') {
+    return 'text-neutral-600/70 dark:text-neutral-300/55';
+  }
+
+  if (key.active) {
+    return 'text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.45)]';
+  }
+
+  return key.isBlack ? 'text-white/90' : 'text-neutral-950/80';
+}
+
+function whiteKeyClass(key: PianoKey) {
+  const role = keyRole(key);
+
+  return [
+    'absolute top-0 bottom-0 overflow-hidden transition-[background,box-shadow] duration-150',
+    role === 'secondary'
+      ? 'z-[12] cursor-pointer rounded-none border-0 bg-transparent'
+      : 'z-20 border-0',
+    role === 'muted' || role === 'unavailable' ? 'z-[15]' : '',
+    isPlayable(key)
+      ? props.gestureActive
+        ? 'cursor-grabbing'
+        : 'cursor-crosshair'
+      : role === 'muted'
+        ? 'cursor-default'
+        : 'cursor-default',
+  ];
+}
+
+function blackKeyClass(key: PianoKey) {
+  const role = keyRole(key);
+
+  return [
+    'absolute top-0 overflow-hidden transition-[background,box-shadow] duration-150',
+    role === 'secondary'
+      ? 'z-[22] cursor-pointer rounded-b-[0.45rem] border-0'
+      : 'z-30 rounded-b-[0.45rem] border-0',
+    role === 'muted' || role === 'unavailable' ? 'z-[25]' : '',
+    isPlayable(key)
+      ? props.gestureActive
+        ? 'cursor-grabbing'
+        : 'cursor-crosshair'
+      : role === 'secondary'
+        ? 'cursor-pointer'
+        : 'cursor-default',
+  ];
+}
+
+function keyGeometry(key: PianoKey, variant: 'white' | 'black') {
+  if (variant === 'white') {
+    return {
+      left: `${key.left * 100}%`,
+      width: `${whiteKeyWidth.value}%`,
+    };
+  }
 
   return {
     left: `${key.left * 100}%`,
-    width,
-    height: key.isBlack ? '62%' : '100%',
-    background: fill,
-    border: 'none',
+    width: `${whiteKeyWidth.value * 0.62}%`,
+    height: '61%',
+  };
+}
+
+function focusRingStyle(key: PianoKey) {
+  if (props.gestureNote !== key.note) return undefined;
+  return `inset 0 0 0 2px ${PIANO_THEME.focusRing}`;
+}
+
+function secondaryWhiteStyle(key: PianoKey) {
+  return {
+    ...keyGeometry(key, 'white'),
+    background: 'transparent',
     boxShadow: 'none',
-    color: 'transparent',
-    opacity: 1,
-    transform: undefined,
+  };
+}
+
+function secondaryBlackStyle(key: PianoKey) {
+  return {
+    ...keyGeometry(key, 'black'),
+    background: PIANO_THEME.inactiveHand,
+    boxShadow: 'inset 0 -3px 0 rgba(255,255,255,0.04)',
+  };
+}
+
+function mutedStyle(key: PianoKey, variant: 'white' | 'black') {
+  const isDark =
+    typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('dark');
+
+  return {
+    ...keyGeometry(key, variant),
+    background: isDark ? PIANO_THEME.mutedStripeDark : PIANO_THEME.mutedStripeLight,
+    boxShadow: `inset 0 0 0 1px ${isDark ? PIANO_THEME.mutedBorderDark : PIANO_THEME.mutedBorderLight}`,
+    outline: `1px dashed ${isDark ? PIANO_THEME.mutedBorderDark : PIANO_THEME.mutedBorderLight}`,
+    outlineOffset: '-2px',
+  };
+}
+
+function selectedWhiteStyle(key: PianoKey) {
+  const fill = octaveColor(key.note);
+
+  return {
+    ...keyGeometry(key, 'white'),
+    background: fill,
+    boxShadow: [
+      `inset 0 0 0 2px rgba(255,255,255,0.55)`,
+      `inset 0 -11px 0 ${withHexAlpha(fill, 'aa')}`,
+      '0 2px 4px rgba(0,0,0,0.28)',
+      focusRingStyle(key),
+    ]
+      .filter(Boolean)
+      .join(', '),
+  };
+}
+
+function selectedBlackStyle(key: PianoKey) {
+  const fill = octaveColor(key.note);
+
+  return {
+    ...keyGeometry(key, 'black'),
+    background: PIANO_THEME.blackKeySelected,
+    boxShadow: [
+      `inset 0 -10px 0 ${fill}`,
+      `inset 0 0 0 2px ${withHexAlpha(fill, 'cc')}`,
+      '0 4px 8px rgba(0,0,0,0.45)',
+      focusRingStyle(key),
+    ]
+      .filter(Boolean)
+      .join(', '),
+  };
+}
+
+function idleWhiteStyle(key: PianoKey) {
+  const fill = octaveColor(key.note);
+
+  return {
+    ...keyGeometry(key, 'white'),
+    background: fill,
+    boxShadow: [focusRingStyle(key)].filter(Boolean).join(', '),
+  };
+}
+
+function idleBlackStyle(key: PianoKey) {
+  const fill = octaveColor(key.note);
+
+  return {
+    ...keyGeometry(key, 'black'),
+    background: PIANO_THEME.blackKeyBody,
+    boxShadow: [
+      `inset 0 -5px 0 ${fill}`,
+      '0 3px 7px rgba(0,0,0,0.35)',
+      focusRingStyle(key),
+    ]
+      .filter(Boolean)
+      .join(', '),
   };
 }
 
 function whiteKeyStyle(key: PianoKey) {
-  if (key.secondary) {
-    return secondaryKeyStyle(key);
-  }
+  const role = keyRole(key);
 
-  const noteColor = props.noteColors[key.note] || '#94a3b8';
-  const playable = isPlayable(key);
-  const gestureAccent =
-    props.gestureMode === 'erase'
-      ? 'rgba(245, 158, 11, 0.72)'
-      : 'rgba(16, 185, 129, 0.72)';
-  const gestureOutline =
-    props.gestureMode === 'erase'
-      ? 'rgba(245, 158, 11, 0.26)'
-      : 'rgba(16, 185, 129, 0.24)';
-  const inactiveBackground = !key.available
-    ? '#d1d5db'
-    : key.muted
-      ? '#d4d4d8'
-      : playable
-        ? withAlpha(noteColor, '24')
-        : '#eef2f7';
-
-  return {
-    left: `${key.left * 100}%`,
-    width: `${whiteKeyWidth.value}%`,
-    background: key.active ? noteColor : inactiveBackground,
-    borderColor: key.active
-      ? withAlpha(noteColor, 'f2')
-      : key.muted
-        ? '#71717a'
-        : !key.available
-          ? 'transparent'
-          : playable
-            ? withAlpha(noteColor, '88')
-            : '#52525b',
-    boxShadow: key.active
-      ? `inset 0 -14px 0 ${withAlpha(noteColor, 'd9')}, 0 0 0 2px rgba(255,255,255,0.92)`
-      : props.gestureNote === key.note
-        ? `inset 0 -10px 0 ${gestureAccent}, 0 0 0 2px ${gestureOutline}`
-        : key.muted
-          ? 'inset 0 -10px 0 rgba(113, 113, 122, 0.38)'
-          : playable
-            ? `inset 0 -8px 0 ${withAlpha(noteColor, '70')}`
-            : undefined,
-    color: key.active ? '#ffffff' : '#52525b',
-    opacity: key.available ? 1 : 0.58,
-  };
+  if (role === 'secondary') return secondaryWhiteStyle(key);
+  if (role === 'muted' || role === 'unavailable') return mutedStyle(key, 'white');
+  if (key.active) return selectedWhiteStyle(key);
+  return idleWhiteStyle(key);
 }
 
 function blackKeyStyle(key: PianoKey) {
-  if (key.secondary) {
-    return secondaryKeyStyle(key);
-  }
+  const role = keyRole(key);
 
-  const noteColor = props.noteColors[key.note] || '#111827';
-  const playable = isPlayable(key);
-  const gestureOutline =
-    props.gestureMode === 'erase'
-      ? 'rgba(251, 191, 36, 0.38)'
-      : 'rgba(52, 211, 153, 0.34)';
-  const accent = key.active
-    ? withAlpha(noteColor, 'e6')
-    : key.muted
-      ? '#a1a1aa'
-      : playable
-        ? withAlpha(noteColor, 'd0')
-        : '#3f3f46';
-
-  return {
-    left: `${key.left * 100}%`,
-    width: `${whiteKeyWidth.value * 0.64}%`,
-    height: '62%',
-    background: !key.available
-      ? '#111827'
-      : key.active
-        ? '#111827'
-        : key.muted
-          ? '#27272a'
-          : '#101010',
-    borderColor: key.active ? accent : '#050505',
-    boxShadow: `${props.gestureNote === key.note ? `0 0 0 2px ${gestureOutline}, ` : ''}inset 0 -${key.active ? '18px' : playable ? '10px' : '8px'} 0 ${accent}, 0 8px 14px rgba(15, 23, 42, 0.22)`,
-    color: '#f8fafc',
-    opacity: key.available ? 1 : 0.52,
-    transform: props.gestureNote === key.note ? 'translateY(1px)' : undefined,
-  };
+  if (role === 'secondary') return secondaryBlackStyle(key);
+  if (role === 'muted' || role === 'unavailable') return mutedStyle(key, 'black');
+  if (key.active) return selectedBlackStyle(key);
+  return idleBlackStyle(key);
 }
 
-function isPlayable(key: PianoKey) {
-  return key.available && !key.secondary && !key.muted;
-}
-
-function acceptsPointer(key: PianoKey) {
-  return key.available && !key.muted;
-}
-
-function withAlpha(color: string, alpha: string) {
-  if (/^#[0-9a-f]{6}$/i.test(color)) {
-    return `${color}${alpha}`;
-  }
-
-  return color;
+function pointerOptions(event: PointerEvent) {
+  return { additive: event.ctrlKey || event.metaKey };
 }
 
 function resolvePointerNote(event: PointerEvent) {
@@ -400,6 +527,7 @@ function onKeyboardPointerDown(event: PointerEvent) {
   }
 
   activePointerId.value = event.pointerId;
+  pointerAdditive.value = pointerOptions(event).additive ?? false;
   if (event.currentTarget instanceof HTMLDivElement) {
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -410,7 +538,7 @@ function onKeyboardPointerDown(event: PointerEvent) {
   const key = keys.value.find((item) => item.note === note);
   if (!key || !acceptsPointer(key)) return;
 
-  emit('start', note);
+  emit('start', note, pointerOptions(event));
 }
 
 function onKeyboardPointerMove(event: PointerEvent) {
@@ -422,12 +550,35 @@ function onKeyboardPointerMove(event: PointerEvent) {
   const key = keys.value.find((item) => item.note === note);
   if (!key || !acceptsPointer(key)) return;
 
-  emit('hover', note);
+  emit('hover', note, { additive: pointerAdditive.value });
 }
 
 function onKeyboardPointerEnd(event: PointerEvent) {
   if (activePointerId.value !== event.pointerId) return;
 
   activePointerId.value = null;
+  pointerAdditive.value = false;
 }
 </script>
+
+<style scoped>
+.bg-muted-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    #b8b8b8 0,
+    #b8b8b8 2px,
+    #d9d9d9 2px,
+    #d9d9d9 4px
+  );
+}
+
+:global(.dark) .bg-muted-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    #3a3a40 0,
+    #3a3a40 2px,
+    #4a4a52 2px,
+    #4a4a52 4px
+  );
+}
+</style>

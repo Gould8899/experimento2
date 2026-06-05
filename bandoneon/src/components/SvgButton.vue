@@ -3,7 +3,7 @@
     data-bandoneon-key="true"
     :class="{ selected, muted }"
     :style="groupStyle"
-    @pointerdown="emit('start')"
+    @pointerdown="onPointerDown"
     @click.prevent="emit('click')"
     @pointerenter="emit('hover')"
   >
@@ -86,7 +86,15 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{ start: []; click: []; hover: [] }>();
+const emit = defineEmits<{
+  start: [options?: { additive?: boolean }];
+  click: [];
+  hover: [];
+}>();
+
+function onPointerDown(event: PointerEvent) {
+  emit('start', { additive: event.ctrlKey || event.metaKey });
+}
 
 const store = useStore();
 const settings = useSettingsStore();

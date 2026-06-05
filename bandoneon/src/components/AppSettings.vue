@@ -225,19 +225,43 @@
         >
           {{ t('keyboard_shortcuts') }}
         </div>
-        <ul
-          class="mt-2 grid gap-1.5 text-xs text-neutral-600 dark:text-neutral-300"
-        >
-          <li>
-            <span class="font-medium">{{ t('shortcut_open_settings') }}:</span>
-            {{ t('settings_open_shortcut') }}
-          </li>
-          <li>
-            <span class="font-medium">{{ t('settings_title') }}:</span>
-            {{ t('settings_shortcut') }}
-          </li>
-        </ul>
-        <Button class="mt-3 w-full" @click="emit('openCredits')">
+
+        <div class="mt-3">
+          <div
+            class="text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            {{ t('shortcut_section_app') }}
+          </div>
+          <dl
+            class="mt-2 grid gap-1.5 text-xs text-neutral-600 dark:text-neutral-300"
+          >
+            <div
+              v-for="row in workspaceShortcutRows"
+              :key="row.labelKey"
+              class="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-3"
+            >
+              <dt>{{ t(row.labelKey) }}</dt>
+              <dd
+                class="font-mono text-[11px] tracking-tight text-neutral-500 dark:text-neutral-400"
+              >
+                {{ row.keys }}
+              </dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="mt-4">
+          <div
+            class="text-[10px] font-semibold tracking-[0.14em] text-neutral-500 uppercase dark:text-neutral-400"
+          >
+            {{ t('shortcut_section_piano') }}
+          </div>
+          <div class="mt-2">
+            <ShortcutPianoDiagram />
+          </div>
+        </div>
+
+        <Button class="mt-4 w-full" @click="emit('openCredits')">
           {{ t('credits') }}
         </Button>
       </section>
@@ -250,10 +274,14 @@ import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
 import { onMounted, onUnmounted, useId } from 'vue';
 import { useDark } from '../composables/useDark';
+import {
+  WORKSPACE_SHORTCUT_ROWS,
+} from '../constants/keyboardShortcuts';
 import { pitchNotations } from '../data/index';
 import { useStore } from '../stores/main';
 import { availableLocaleCodes, useSettingsStore } from '../stores/settings';
 import Button from './Button.vue';
+import ShortcutPianoDiagram from './ShortcutPianoDiagram.vue';
 
 const emit = defineEmits<{ close: []; openCredits: [] }>();
 
@@ -267,6 +295,8 @@ const { pitchNotation, locale, soundEnabled, soundMode, viewMode } =
   storeToRefs(settings);
 
 const { t } = useI18n({ useScope: 'global' });
+
+const workspaceShortcutRows = WORKSPACE_SHORTCUT_ROWS;
 
 onMounted(() => {
   document.body.style.overflow = 'hidden';

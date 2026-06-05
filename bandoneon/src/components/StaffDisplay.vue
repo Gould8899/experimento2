@@ -6,55 +6,39 @@
       ref="svgEl"
       class="block h-full min-h-[10rem] w-full flex-1 touch-none"
       :class="gestureActive ? 'cursor-grabbing' : 'cursor-crosshair'"
-      viewBox="0 0 1320 520"
+      viewBox="0 -52 1320 576"
       preserveAspectRatio="xMidYMid meet"
       shape-rendering="geometricPrecision"
       text-rendering="optimizeLegibility"
       @pointerdown.capture.prevent="onSvgPointerDown"
       @pointermove.prevent="onSvgPointerMove"
-      @pointerup="onSvgPointerEnd"
-      @pointercancel="onSvgPointerEnd"
-      @lostpointercapture="onSvgPointerEnd"
     >
+      <defs>
+        <clipPath id="staff-display-clip">
+          <rect x="12" y="-44" width="1296" height="544" rx="20" />
+        </clipPath>
+      </defs>
+
       <rect
         x="12"
-        y="20"
+        y="-44"
         width="1296"
-        height="480"
+        height="544"
         rx="20"
         fill="currentColor"
         opacity="0.025"
       />
 
+      <g clip-path="url(#staff-display-clip)">
+
       <line
-        x1="118"
-        x2="118"
-        y1="48"
-        y2="472"
+        x1="96"
+        x2="96"
+        :y1="STAFF_FRAME.y + 36"
+        :y2="STAFF_FRAME.y + STAFF_FRAME.height - 28"
         stroke="currentColor"
         stroke-opacity="0.18"
         stroke-width="2.4"
-      />
-
-      <rect
-        :x="timelineCenterX - 24"
-        y="48"
-        width="48"
-        height="424"
-        rx="16"
-        fill="currentColor"
-        opacity="0.04"
-      />
-
-      <line
-        :x1="timelineCenterX"
-        :x2="timelineCenterX"
-        y1="48"
-        y2="472"
-        stroke="currentColor"
-        stroke-opacity="0.14"
-        stroke-dasharray="8 8"
-        stroke-width="1.8"
       />
 
       <g v-for="line in staffLines" :key="line.id">
@@ -127,8 +111,7 @@
         :width="STAFF_LAYOUT.noteArea.right - STAFF_LAYOUT.noteArea.left"
         :height="staff.height"
         :class="staff.active ? 'cursor-crosshair' : 'cursor-pointer'"
-        :fill="staff.active ? 'transparent' : 'currentColor'"
-        :fill-opacity="staff.active ? 0 : 0.04"
+        fill="transparent"
         pointer-events="all"
       />
 
@@ -222,7 +205,7 @@
       <text
         v-if="noteLayout.length === 0"
         x="660"
-        y="268"
+        y="262"
         font-size="20"
         text-anchor="middle"
         fill="currentColor"
@@ -230,6 +213,7 @@
       >
         {{ t('staff') }}
       </text>
+      </g>
     </svg>
   </div>
 </template>
@@ -237,10 +221,13 @@
 <script setup lang="ts">
 import { useI18n } from 'petite-vue-i18n';
 import { Note } from 'tonal';
-import { computed, ref } from 'vue';
+import { computed, onUnmounted, ref } from 'vue';
 import {
+  hitStaffDisplayNote,
   matchStaffPointerNote,
   resolveStaffFromY,
+  staffForHand,
+  staffForNoteRegister,
   staffInteractionBounds,
   STAFF_LAYOUT,
   staffY,
@@ -274,12 +261,14 @@ const clefFontFamily =
   "'Noto Music', 'Segoe UI Symbol', 'Arial Unicode MS', 'Times New Roman', serif";
 
 const emit = defineEmits<{
-  start: [note: string, staff: StaffName];
+  start: [note: string, staff: StaffName, options?: { additive?: boolean }];
   hover: [note: string, staff: StaffName];
+  reflect: [note: string, staff: StaffName];
 }>();
 
 const props = defineProps<{
   notes: string[];
+  noteStaffs?: StaffName[];
   groupBreaks?: number[];
   noteColors: Record<string, string>;
   hand: 'right' | 'left';
@@ -290,6 +279,7 @@ const props = defineProps<{
   treblePlayableNotes: string[];
   bassPlayableNotes: string[];
   activeNotes?: Record<string, boolean>;
+  showMelodyTrail?: boolean;
   gestureFocusNote?: string | null;
   gestureActive?: boolean;
   gestureMode?: 'paint' | 'erase';
@@ -299,12 +289,24 @@ const { t } = useI18n({ useScope: 'global' });
 
 const svgEl = ref<SVGSVGElement | null>(null);
 const activePointerId = ref<number | null>(null);
+const pointerAdditive = ref(false);
+const activeGestureStaff = ref<StaffName | null>(null);
 const pointerPreview = ref<{
   x: number;
   y: number;
   color: string;
 } | null>(null);
 
+const STAFF_FRAME = {
+  x: 12,
+  y: -44,
+  width: 1296,
+  height: 544,
+  rx: 20,
+  right: 1308,
+} as const;
+const NOTE_RIGHT_PAD = 56;
+const NOTEHEAD_RIGHT_EXTENT = 32;
 const lineSpacing = STAFF_LAYOUT.lineSpacing;
 const staffTop = STAFF_LAYOUT.staffTop;
 const bottomLineIndex = STAFF_LAYOUT.bottomLineIndex;
@@ -321,9 +323,7 @@ const activeStaff = computed<StaffName>(() =>
 );
 const staffHitAreas = computed(() =>
   (['treble', 'bass'] as const).map((id) => {
-    const notes =
-      id === 'treble' ? props.treblePlayableNotes : props.bassPlayableNotes;
-    const bounds = staffInteractionBounds(id, notes);
+    const bounds = staffInteractionBounds(id);
 
     return {
       id,
@@ -366,9 +366,10 @@ const keySignatureLayouts = {
   },
 } as const;
 
-const keySignatureStartX = 152;
-const keySignatureGap = 18;
-const keySignatureNotePadding = 52;
+const keySignatureStartX = 118;
+const keySignatureGap = 16;
+const ACCIDENTAL_LEFT_EXTENT = 42;
+const NOTEHEAD_LEFT_EXTENT = 16;
 
 const tonality = computed(() =>
   resolveSelectionTonality(
@@ -377,6 +378,14 @@ const tonality = computed(() =>
     props.chordType,
     Boolean(props.preferFlats),
   ),
+);
+
+const keySignatureCount = computed(
+  () => tonality.value?.keySignature?.length ?? 0,
+);
+
+const keySignatureNotePadding = computed(
+  () => 28 + keySignatureCount.value * 8,
 );
 
 const keySignatureGlyphs = computed(() => {
@@ -417,25 +426,30 @@ const keySignatureEndX = computed(() => {
   return Math.max(...keySignatureGlyphs.value.map((item) => item.x));
 });
 
-const noteAreaLeft = computed(() =>
-  Math.max(248, keySignatureEndX.value + keySignatureNotePadding),
-);
+const noteAreaLeft = computed(() => {
+  if (keySignatureGlyphs.value.length === 0) {
+    return 108;
+  }
 
-const noteAreaRight = 1290;
-const timelineCenterX = computed(() =>
-  Math.max(noteAreaLeft.value + 180, noteAreaRight - 40),
+  return keySignatureEndX.value + keySignatureNotePadding.value;
+});
+
+const noteAreaRight = STAFF_FRAME.right - 12;
+const noteSpanRight = noteAreaRight - NOTE_RIGHT_PAD - NOTEHEAD_RIGHT_EXTENT;
+const noteSpanLeft = computed(
+  () => noteAreaLeft.value + ACCIDENTAL_LEFT_EXTENT,
 );
 
 const trebleClef = {
-  x: 58,
+  x: 44,
   y: staffLines[0].lines[1] + 44,
-  fontSize: 138,
+  fontSize: 132,
 } as const;
 
 const bassClef = {
-  x: 62,
+  x: 48,
   y: staffLines[1].lines[3] + 15,
-  fontSize: 108,
+  fontSize: 102,
 } as const;
 
 const phraseBreakBaseWeight = 1.55;
@@ -484,28 +498,69 @@ const noteLayout = computed<DisplayNote[]>(() => {
     );
   });
   const totalWeight = pairWeights.reduce((sum, weight) => sum + weight, 0);
-  const availableLeftWidth = Math.max(
-    timelineCenterX.value - noteAreaLeft.value - 12,
-    0,
-  );
+  const spanLeft = noteSpanLeft.value;
+  const spanRight = noteSpanRight;
+  const spanWidth = Math.max(spanRight - spanLeft, 1);
   const baseGap =
-    totalWeight > 0
-      ? Math.min(38, Math.max(18, availableLeftWidth / totalWeight))
+    noteEntries.length > 1 && totalWeight > 0
+      ? Math.min(48, Math.max(24, spanWidth / totalWeight))
       : 0;
-  const positions = new Array(noteEntries.length).fill(timelineCenterX.value);
+  const positions = new Array(noteEntries.length).fill(spanRight);
 
   for (let index = newestIndex - 1; index >= 0; index -= 1) {
     positions[index] = positions[index + 1] - baseGap * pairWeights[index];
   }
 
+  const leftmost = positions[0];
+  if (leftmost > spanLeft) {
+    const shift = leftmost - spanLeft;
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] -= shift;
+    }
+  }
+
+  if (positions[newestIndex] > spanRight) {
+    const shift = positions[newestIndex] - spanRight;
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] -= shift;
+    }
+  }
+
+  if (noteEntries.length === 1) {
+    positions[0] = Math.min(spanLeft + 52, spanRight);
+  }
+
+  const minContentLeft = keySignatureGlyphs.value.length
+    ? keySignatureEndX.value + keySignatureNotePadding.value
+    : 108;
+  const leftExtent =
+    positions[0] -
+    (noteEntries[0]?.accidental ? ACCIDENTAL_LEFT_EXTENT : NOTEHEAD_LEFT_EXTENT);
+
+  if (leftExtent < minContentLeft) {
+    const shift = minContentLeft - leftExtent;
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] += shift;
+    }
+  }
+
+  if (positions[newestIndex] > spanRight) {
+    const shift = positions[newestIndex] - spanRight;
+    for (let index = 0; index < positions.length; index += 1) {
+      positions[index] -= shift;
+    }
+  }
+
   return noteEntries.map(({ note, normalizedNote, accidental }, index) => {
     const x = positions[index];
-    const staff = resolveNoteStaff();
+    const staff =
+      props.noteStaffs?.[index] ?? staffForNoteRegister(normalizedNote);
     const y = staffY(normalizedNote, staff);
     const stemUp = y > middleLineY[staff];
     const stemLength = 66;
     const stemX = x + (stemUp ? 7.2 : -7.2);
     const stemStartY = y + (stemUp ? -2 : 2);
+    const stemEndY = stemStartY + (stemUp ? -stemLength : stemLength);
 
     const isActive = Boolean(props.activeNotes?.[note]);
     const isFocused = props.gestureFocusNote === note;
@@ -523,7 +578,7 @@ const noteLayout = computed<DisplayNote[]>(() => {
       stemUp,
       stemX,
       stemStartY,
-      stemEndY: stemStartY + (stemUp ? -stemLength : stemLength),
+      stemEndY,
       fill: hasColor ? noteColor! : 'currentColor',
       fillOpacity: isActive ? 0.98 : isFocused ? 0.9 : hasColor ? 0.82 : 0.48,
       strokeOpacity: isActive ? 0.35 : hasColor ? 0.22 : 0.18,
@@ -537,6 +592,15 @@ const noteLayout = computed<DisplayNote[]>(() => {
 });
 
 const noteTrail = computed(() => {
+  if (!props.showMelodyTrail) {
+    return [] as Array<{
+      x1: number;
+      y1: number;
+      x2: number;
+      y2: number;
+    }>;
+  }
+
   if (noteLayout.value.length < 2) {
     return [] as Array<{
       x1: number;
@@ -574,9 +638,8 @@ const groupMarkers = computed(() => {
     }>;
   }
 
-  const staff = activeStaff.value;
-  const y1 = staffTop[staff] - 12;
-  const y2 = staffTop[staff] + lineSpacing * 4 + 12;
+  const y1 = staffTop.treble - 14;
+  const y2 = staffTop.bass + lineSpacing * 4 + 14;
 
   return props.groupBreaks.flatMap((breakIndex) => {
     const previous = noteLayout.value[breakIndex - 1];
@@ -588,20 +651,13 @@ const groupMarkers = computed(() => {
 
     return [
       {
-        x:
-          (previous.x + next.x) / 2 -
-          (next.accidental ? 12 : 0) +
-          (previous.accidental ? 3 : 0),
-        y1: y1 + 22,
-        y2: y2 - 22,
+        x: (previous.x + next.x) / 2,
+        y1,
+        y2,
       },
     ];
   });
 });
-
-function resolveNoteStaff(): StaffName {
-  return activeStaff.value;
-}
 
 function diatonicIndex(note: string) {
   const parsed = Note.get(note);
@@ -659,12 +715,35 @@ function resolvePointerStaff(event: PointerEvent) {
     point.y,
     props.treblePlayableNotes,
     props.bassPlayableNotes,
+    staffForHand(props.hand),
   );
 }
 
-function resolvePointerNote(event: PointerEvent) {
+function resolveExistingDisplayNote(event: PointerEvent) {
   const point = clientToSvgPoint(event);
-  const staff = resolvePointerStaff(event);
+  if (!point) return null;
+
+  const layout = noteLayout.value.map((item) => ({
+    note: item.note,
+    x: item.x,
+    y: item.y,
+    staff: item.staff,
+  }));
+  const preferredStaff = staffForHand(props.hand);
+  const staffOrder: StaffName[] =
+    preferredStaff === 'treble' ? ['treble', 'bass'] : ['bass', 'treble'];
+
+  for (const staff of staffOrder) {
+    const hit = hitStaffDisplayNote(point.x, point.y, staff, layout);
+    if (hit) return hit;
+  }
+
+  return null;
+}
+
+function resolvePointerNote(event: PointerEvent, staffOverride?: StaffName) {
+  const point = clientToSvgPoint(event);
+  const staff = staffOverride ?? resolvePointerStaff(event);
   if (!point || !staff) return null;
 
   return matchStaffPointerNote({
@@ -675,10 +754,13 @@ function resolvePointerNote(event: PointerEvent) {
   });
 }
 
-function updatePointerPreview(event: PointerEvent) {
+function updatePointerPreview(
+  event: PointerEvent,
+  staffOverride?: StaffName,
+) {
   const point = clientToSvgPoint(event);
-  const staff = resolvePointerStaff(event);
-  const note = resolvePointerNote(event);
+  const staff = staffOverride ?? resolvePointerStaff(event);
+  const note = resolvePointerNote(event, staff ?? undefined);
   if (!point || !staff || !note) {
     pointerPreview.value = null;
     return;
@@ -703,17 +785,47 @@ function onSvgPointerDown(event: PointerEvent) {
     return;
   }
 
+  const existingNote = resolveExistingDisplayNote(event);
+  if (existingNote) {
+    emit('reflect', existingNote.note, existingNote.staff);
+    return;
+  }
+
   const staff = resolvePointerStaff(event);
   const note = resolvePointerNote(event);
   if (!staff || !note) return;
 
   activePointerId.value = event.pointerId;
+  pointerAdditive.value = event.ctrlKey || event.metaKey;
+  activeGestureStaff.value = staff;
   if (event.currentTarget instanceof SVGSVGElement) {
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  updatePointerPreview(event);
-  emit('start', note, staff);
+  updatePointerPreview(event, staff);
+  emit('start', note, staff, { additive: pointerAdditive.value });
+  attachWindowPointerListeners();
+}
+
+function attachWindowPointerListeners() {
+  window.addEventListener('pointermove', onWindowPointerMove);
+  window.addEventListener('pointerup', onWindowPointerUp);
+  window.addEventListener('pointercancel', onWindowPointerUp);
+}
+
+function detachWindowPointerListeners() {
+  window.removeEventListener('pointermove', onWindowPointerMove);
+  window.removeEventListener('pointerup', onWindowPointerUp);
+  window.removeEventListener('pointercancel', onWindowPointerUp);
+}
+
+function onWindowPointerMove(event: PointerEvent) {
+  onSvgPointerMove(event);
+}
+
+function onWindowPointerUp(event: PointerEvent) {
+  onSvgPointerEnd(event);
+  detachWindowPointerListeners();
 }
 
 function onSvgPointerMove(event: PointerEvent) {
@@ -724,11 +836,19 @@ function onSvgPointerMove(event: PointerEvent) {
     return;
   }
 
+  const lockedStaff = activeGestureStaff.value;
+  if (!lockedStaff) return;
+
   const staff = resolvePointerStaff(event);
-  const note = resolvePointerNote(event);
-  updatePointerPreview(event);
-  if (staff && note) {
-    emit('hover', note, staff);
+  if (staff !== lockedStaff) {
+    pointerPreview.value = null;
+    return;
+  }
+
+  const note = resolvePointerNote(event, lockedStaff);
+  updatePointerPreview(event, lockedStaff);
+  if (note) {
+    emit('hover', note, lockedStaff);
   }
 }
 
@@ -736,6 +856,13 @@ function onSvgPointerEnd(event: PointerEvent) {
   if (activePointerId.value !== event.pointerId) return;
 
   activePointerId.value = null;
+  activeGestureStaff.value = null;
+  pointerAdditive.value = false;
   pointerPreview.value = null;
+  detachWindowPointerListeners();
 }
+
+onUnmounted(() => {
+  detachWindowPointerListeners();
+});
 </script>

@@ -49,7 +49,7 @@ export function resolveStaffPitchFromY(y: number, staff: StaffName) {
 }
 
 const defaultStaffVerticalBounds = (staff: StaffName) => {
-  const edgePadding = STAFF_LAYOUT.lineSpacing * 0.75;
+  const edgePadding = STAFF_LAYOUT.lineSpacing * 1.1;
   return {
     top: STAFF_LAYOUT.staffTop[staff] - edgePadding,
     bottom:
@@ -93,11 +93,18 @@ export function handForStaff(staff: StaffName): 'left' | 'right' {
   return staff === 'treble' ? 'right' : 'left';
 }
 
+/** Grand-staff placement by pitch (middle C and above → treble). */
+export function staffForNoteRegister(note: string): StaffName {
+  const midi = Note.midi(note) ?? 60;
+  return midi >= 60 ? 'treble' : 'bass';
+}
+
 /** Which clef staff was clicked from vertical position. */
 export function resolveStaffFromY(
   y: number,
   treblePlayable: string[] = [],
   bassPlayable: string[] = [],
+  preferredStaff?: StaffName,
 ): StaffName | null {
   const trebleBounds = staffInteractionBounds('treble', treblePlayable);
   const bassBounds = staffInteractionBounds('bass', bassPlayable);
@@ -108,14 +115,43 @@ export function resolveStaffFromY(
   if (inBass && !inTreble) return 'bass';
   if (!inTreble && !inBass) return null;
 
+  const midX = (STAFF_LAYOUT.noteArea.left + STAFF_LAYOUT.noteArea.right) / 2;
+  const trebleNote = matchStaffPointerNote({
+    x: midX,
+    y,
+    staff: 'treble',
+    playableNotes: treblePlayable,
+  });
+  const bassNote = matchStaffPointerNote({
+    x: midX,
+    y,
+    staff: 'bass',
+    playableNotes: bassPlayable,
+  });
+
+  if (trebleNote && !bassNote) return 'treble';
+  if (bassNote && !trebleNote) return 'bass';
+
+  if (trebleNote && bassNote) {
+    const trebleDistance = Math.abs(staffY(trebleNote, 'treble') - y);
+    const bassDistance = Math.abs(staffY(bassNote, 'bass') - y);
+    if (trebleDistance < bassDistance) return 'treble';
+    if (bassDistance < trebleDistance) return 'bass';
+    if (preferredStaff) return preferredStaff;
+    return 'treble';
+  }
+
+  if (preferredStaff === 'bass' && inBass) return 'bass';
+  if (preferredStaff === 'treble' && inTreble) return 'treble';
+
   const trebleCenter =
     STAFF_LAYOUT.staffTop.treble + (STAFF_LAYOUT.lineSpacing * 4) / 2;
   const bassCenter =
     STAFF_LAYOUT.staffTop.bass + (STAFF_LAYOUT.lineSpacing * 4) / 2;
 
-  return Math.abs(y - trebleCenter) <= Math.abs(y - bassCenter)
-    ? 'treble'
-    : 'bass';
+  return Math.abs(y - bassCenter) <= Math.abs(y - trebleCenter)
+    ? 'bass'
+    : 'treble';
 }
 
 export function isPointInStaffArea(
@@ -167,4 +203,41 @@ export function matchStaffPointerNote({
   }
 
   return bestDistance <= STAFF_STEP_HEIGHT * 0.92 ? bestNote : null;
+}
+
+export type StaffDisplayNoteHit = {
+  note: string;
+  x: number;
+  y: number;
+  staff: StaffName;
+};
+
+const NOTEHEAD_HIT_RX = 26;
+const NOTEHEAD_HIT_RY = 20;
+
+/** Returns the topmost displayed note whose head contains the point. */
+export function hitStaffDisplayNote(
+  x: number,
+  y: number,
+  staff: StaffName | null,
+  notes: StaffDisplayNoteHit[],
+): StaffDisplayNoteHit | null {
+  if (!staff) return null;
+
+  for (let index = notes.length - 1; index >= 0; index -= 1) {
+    const item = notes[index];
+    if (item.staff !== staff) continue;
+
+    const dx = x - item.x;
+    const dy = y - item.y;
+    const normalized =
+      (dx * dx) / (NOTEHEAD_HIT_RX * NOTEHEAD_HIT_RX) +
+      (dy * dy) / (NOTEHEAD_HIT_RY * NOTEHEAD_HIT_RY);
+
+    if (normalized <= 1) {
+      return item;
+    }
+  }
+
+  return null;
 }

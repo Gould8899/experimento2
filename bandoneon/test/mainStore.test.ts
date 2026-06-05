@@ -44,11 +44,11 @@ describe('main store interactions', () => {
 
     store.resetSearch();
 
-    expect(store.side).toBe('right');
+    expect(store.side).toBe('left');
     expect(store.direction).toBe('open');
     expect(store.tonic).toBeNull();
     expect(store.chordType).toBeNull();
-    expect(store.scaleType).toBeNull();
+    expect(store.scaleType).toBe('white-keys');
     expect(store.showColors).toBe(true);
     expect(store.showEnharmonics).toBe(false);
     expect(store.resetNonce).toBe(1);
@@ -61,7 +61,7 @@ describe('main store interactions', () => {
     expect(store.direction).toBe('open');
     expect(store.tonic).toBeNull();
     expect(store.chordType).toBeNull();
-    expect(store.scaleType).toBeNull();
+    expect(store.scaleType).toBe('white-keys');
     expect(store.showColors).toBe(true);
     expect(store.showEnharmonics).toBe(false);
   });

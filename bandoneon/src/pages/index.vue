@@ -80,7 +80,7 @@
                   <SvgButton
                     v-for="([x, y, tonal], idx) in keyPositions"
                     :key="idx"
-                    :selected="selected[tonal]"
+                    :selected="highlightedNotes[tonal]"
                     :focused="gestureFocusNote === tonal"
                     :interactive-mode="interactionMode"
                     :gesture-active="gestureActive"
@@ -96,15 +96,15 @@
                     :tonal="tonal"
                     :color="color(tonal)"
                     :label-rotation="labelRotation"
-                    @start="onBandoneonStart(tonal)"
+                    @start="(options) => onBandoneonStart(tonal, options)"
                     @hover="onBandoneonHover(tonal)"
                   />
                   <template v-if="showScaleGuides">
                     <SvgPath
-                      v-for="(path, index) in scalePaths"
-                      :key="index"
-                      :stroke="scaleGuideStroke"
-                      :d="path"
+                      v-for="(guide, index) in scaleGuidePaths"
+                      :key="`${guide.octave}-${index}`"
+                      :stroke="guide.stroke"
+                      :d="guide.d"
                     />
                   </template>
                 </SvgKeyboard>
@@ -113,6 +113,7 @@
             <div ref="staffPanelEl" class="min-h-0 min-w-0">
               <StaffDisplay
                 :notes="staffNotes"
+                :note-staffs="staffNoteStaffs"
                 :group-breaks="staffGroupBreaks"
                 :note-colors="pianoNoteColors"
                 :hand="side"
@@ -123,16 +124,44 @@
                 :treble-playable-notes="treblePlayableNotes"
                 :bass-playable-notes="bassPlayableNotes"
                 :active-notes="staffActiveNotes"
+                :show-melody-trail="staffShowMelodyTrail"
                 :gesture-focus-note="gestureFocusNote"
                 :gesture-active="gestureActive"
                 :gesture-mode="gestureMode"
                 @start="onStaffStart"
                 @hover="onStaffHover"
+                @reflect="onStaffReflect"
               />
             </div>
           </div>
 
           <div ref="pianoPanelEl" class="min-w-0">
+            <div class="mb-1.5 flex items-center justify-end gap-1 px-0.5">
+              <span
+                class="text-[10px] font-medium tracking-wide text-neutral-500 uppercase dark:text-neutral-400"
+              >
+                {{ t('keyboard_octave') }}
+              </span>
+              <span
+                class="min-w-[1.75rem] rounded-md bg-neutral-100 px-1 py-0.5 text-center text-xs font-semibold tabular-nums text-neutral-800 dark:bg-neutral-800 dark:text-neutral-100"
+              >
+                {{ keyboardEffectiveBaseOctave }}
+              </span>
+              <Button
+                class="min-w-7 px-1.5 py-1 text-sm"
+                :aria-label="t('keyboard_octave_down')"
+                @click="shiftKeyboardOctave(-1)"
+              >
+                {{ '{' }}
+              </Button>
+              <Button
+                class="min-w-7 px-1.5 py-1 text-sm"
+                :aria-label="t('keyboard_octave_up')"
+                @click="shiftKeyboardOctave(1)"
+              >
+                {{ '}' }}
+              </Button>
+            </div>
             <PianoKeyboard
               compact
               :notes="instrumentFullNoteRange"
@@ -207,7 +236,7 @@ import { useHead } from '@unhead/vue';
 import { useI18n } from 'petite-vue-i18n';
 import { storeToRefs } from 'pinia';
 import { Note } from 'tonal';
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import AppCredits from '../components/AppCredits.vue';
 import AppSettings from '../components/AppSettings.vue';
 import Button from '../components/Button.vue';
@@ -224,14 +253,13 @@ import SvgKeyboard from '../components/SvgKeyboard.vue';
 import SvgPath from '../components/SvgPath.vue';
 import { useKeyboard } from '../composables/useKeyboard';
 import { useSynth } from '../composables/useSynth';
-import { useDark } from '../composables/useDark';
 import {
-  colors,
   getInstrumentNotesForSide,
   instrumentFullNoteRange,
   isArpeggioType,
   usesFormulaChordType,
 } from '../data/index';
+import { octaveColorForNote, octaveColorMap, withHexAlpha } from '../utils/octaveColor';
 import { useStore } from '../stores/main';
 import { useSettingsStore } from '../stores/settings';
 import { buildKeyboardExportFilename } from '../utils/export';
@@ -240,6 +268,13 @@ import {
   noteMatchesPitchClasses,
 } from '../utils/harmonic';
 import {
+  clampKeyboardBaseOctave,
+  inferDefaultKeyboardBaseOctave,
+} from '../utils/pianoKeyboardOctave';
+import {
+  buildColoredScaleGuidePaths,
+} from '../utils/scaleGuides';
+import {
   applyPaintGestureStep,
   resolvePaintGestureMode,
   selectionsEqual,
@@ -247,10 +282,10 @@ import {
 } from '../utils/paintGesture';
 import {
   appendRecentPlaybackNotes,
-  resolveStaffState,
+  sortNotesByMidi,
   takeRecentPlaybackNotes,
 } from '../utils/staffState';
-import { handForStaff, type StaffName } from '../utils/staffPointer';
+import { handForStaff, staffForHand, staffForNoteRegister, type StaffName } from '../utils/staffPointer';
 
 // Main exploration view for the instrument: chords, scales, overlays and manual edits.
 const { t } = useI18n({ useScope: 'global' });
@@ -294,11 +329,6 @@ const {
 const settings = useSettingsStore();
 const { instrument, showScaleGuides, soundEnabled, soundMode, viewMode } =
   storeToRefs(settings);
-const { isDark } = useDark();
-
-const scaleGuideStroke = computed(() =>
-  isDark.value ? 'rgba(56, 189, 248, 0.88)' : 'rgba(2, 132, 199, 0.92)',
-);
 
 const canResetSelection = computed(() => isModified.value || store.isUserChord);
 const isArpeggioSelection = computed(() => isArpeggioType(chordType.value));
@@ -311,9 +341,19 @@ const hasManualSelectionToClear = computed(
     isModified.value ||
     recentPlaybackNotes.value.length > 0,
 );
+const hasVisibleStaffContext = computed(
+  () =>
+    !interactionHighlightSuppressed.value &&
+    !gestureActive.value &&
+    !isModified.value &&
+    (recentPlaybackNotes.value.length > 0 ||
+      (chordNotes.value.length > 0 && !isArpeggioSelection.value)),
+);
+const hasSelectionToClear = computed(
+  () => hasManualSelectionToClear.value || hasVisibleStaffContext.value,
+);
 const hasSearchContextToReset = computed(
   () =>
-    side.value !== 'right' ||
     direction.value !== 'open' ||
     tonic.value !== null ||
     chordType.value !== null ||
@@ -326,12 +366,13 @@ const resetActionLabel = computed(() =>
   store.isUserChord ? t('reset_voicing') : t('clear_selection'),
 );
 const resetActionShortcut = computed(() =>
-  !store.isUserChord && hasManualSelectionToClear.value ? 'Esc' : undefined,
+  !store.isUserChord && hasSelectionToClear.value ? 'Esc' : undefined,
 );
 const resetSearchShortcut = computed(() =>
   hasSearchContextToReset.value ? 'Esc Esc' : undefined,
 );
 const isModified = ref(false);
+const interactionHighlightSuppressed = ref(false);
 const userSelection = ref<Record<string, boolean>>({});
 const interactionMode = ref<'paint-on'>('paint-on');
 const gestureActive = ref(false);
@@ -341,12 +382,45 @@ const gestureMode = ref<PaintGestureMode>('paint');
 const gestureTrace = ref<string[]>([]);
 const lastGestureNote = ref<string | null>(null);
 const recentPlaybackNotes = ref<string[]>([]);
+const recentPlaybackStaffs = ref<StaffName[]>([]);
 const recentPlaybackGroups = ref<number[]>([]);
 const currentGesturePlaybackCount = ref(0);
+const gestureStaff = ref<StaffName | null>(null);
 const activePreviewNote = ref<string | null>(null);
-const gestureFocusNote = computed(() => lastGestureNote.value);
+const soundingNotes = ref(new Set<string>());
+const keyboardHeldNotes = ref(new Set<string>());
+const staffReflectNote = ref<string | null>(null);
+const keyboardOctaveShift = ref(0);
+const keyboardHandBaseOctave = ref(4);
+const gestureFocusNote = computed(
+  () => lastGestureNote.value ?? staffReflectNote.value,
+);
 
 const visibleNotes = computed(() => keyPositions.value.map((item) => item[2]));
+
+function keyboardPlayCandidates() {
+  return visibleNotes.value.filter((note) => isPlayableBandoneonNote(note));
+}
+
+function syncKeyboardHandBaseOctave() {
+  keyboardHandBaseOctave.value = inferDefaultKeyboardBaseOctave(
+    keyboardPlayCandidates(),
+  );
+}
+
+const keyboardEffectiveBaseOctave = computed(() =>
+  clampKeyboardBaseOctave(
+    keyboardHandBaseOctave.value + keyboardOctaveShift.value,
+  ),
+);
+
+function shiftKeyboardOctave(delta: number) {
+  const nextBase = clampKeyboardBaseOctave(
+    keyboardEffectiveBaseOctave.value + delta,
+  );
+  keyboardOctaveShift.value = nextBase - keyboardHandBaseOctave.value;
+}
+
 const currentHand = computed(() => side.value);
 const otherHand = computed(() => (side.value === 'right' ? 'left' : 'right'));
 
@@ -430,12 +504,12 @@ function buildScalePath(notes: string[]) {
   return pathString;
 }
 
-const scalePaths = computed(() => {
-  if (harmonicGuideNotes.value.length === 0) return [];
-
-  const path = buildScalePath(harmonicGuideNotes.value);
-  return path ? [path] : [];
-});
+const scaleGuidePaths = computed(() =>
+  buildColoredScaleGuidePaths(harmonicGuideNotes.value, (notes) => {
+    const path = buildScalePath(notes);
+    return path || null;
+  }),
+);
 
 const onDownload = () => {
   const filename = buildKeyboardExportFilename({
@@ -456,12 +530,14 @@ function rememberRecentPlayback(
   options?: { replace?: boolean },
 ) {
   const previousLength = recentPlaybackNotes.value.length;
+  const staff = gestureStaff.value ?? staffForHand(side.value);
 
   recentPlaybackNotes.value = options?.replace
     ? takeRecentPlaybackNotes(notes)
     : appendRecentPlaybackNotes(recentPlaybackNotes.value, notes);
 
   if (options?.replace) {
+    recentPlaybackStaffs.value = recentPlaybackNotes.value.map(() => staff);
     recentPlaybackGroups.value = recentPlaybackNotes.value.length
       ? [recentPlaybackNotes.value.length]
       : [];
@@ -472,6 +548,14 @@ function rememberRecentPlayback(
   if (notes.length === 0) {
     return;
   }
+
+  recentPlaybackStaffs.value = [
+    ...recentPlaybackStaffs.value,
+    ...notes.map(() => staff),
+  ];
+  recentPlaybackStaffs.value = recentPlaybackStaffs.value.slice(
+    -recentPlaybackNotes.value.length,
+  );
 
   currentGesturePlaybackCount.value += notes.length;
 
@@ -501,40 +585,85 @@ function rememberRecentPlayback(
 
 function clearRecentPlayback() {
   recentPlaybackNotes.value = [];
+  recentPlaybackStaffs.value = [];
   recentPlaybackGroups.value = [];
   currentGesturePlaybackCount.value = 0;
 }
 
-const resetUserSelection = () => {
+function resetKeyboardSelection() {
   userSelection.value = {};
   isModified.value = false;
-  gestureActive.value = false;
-  gestureSelection.value = {};
-  gestureBaseSelection.value = {};
-  gestureMode.value = 'paint';
-  gestureTrace.value = [];
-  lastGestureNote.value = null;
-  activePreviewNote.value = null;
-  clearRecentPlayback();
-  stopAll();
+  keyboardHeldNotes.value.clear();
+  resetGestureState();
+  stopAllSounds();
+}
+
+const resetUserSelection = () => {
+  clearStaffScore();
 };
 
-watch(
-  [side, direction, tonic, chordType, scaleType, showEnharmonics, resetNonce],
-  resetUserSelection,
-);
+function suppressInteractionHighlights() {
+  interactionHighlightSuppressed.value = true;
+}
+
+function clearStaffScore() {
+  if (gestureActive.value) {
+    resetGestureState();
+  }
+
+  keyboardHeldNotes.value.clear();
+  userSelection.value = {};
+  isModified.value = false;
+  clearRecentPlayback();
+  staffReflectNote.value = null;
+  stopAllSounds();
+}
+
+watch(side, () => {
+  keyboardOctaveShift.value = 0;
+  syncKeyboardHandBaseOctave();
+});
+
+watch([side, direction], () => {
+  if (gestureActive.value || suppressSelectionReset.value) return;
+  resetKeyboardSelection();
+});
+
+watch(scaleType, (next, previous) => {
+  if (next === previous) return;
+  clearStaffScore();
+});
+
+watch(chordType, (next, previous) => {
+  if (next === previous) return;
+  clearStaffScore();
+});
+
+watch([tonic, showEnharmonics], () => {
+  if (suppressSelectionReset.value) return;
+  clearStaffScore();
+});
+
+watch(resetNonce, () => {
+  clearStaffScore();
+});
 
 watch(soundEnabled, (enabled) => {
   if (!enabled) {
-    activePreviewNote.value = null;
-    stopAll();
+    stopAllSounds();
   }
 });
 
 watch(soundMode, () => {
-  activePreviewNote.value = null;
-  stopAll();
+  stopAllSounds();
 });
+
+watch(
+  [tonic, chordType, scaleType, showEnharmonics, showColors],
+  () => {
+    syncKeyboardHandBaseOctave();
+  },
+);
 
 watch(
   [side, direction, tonic, chordType, scaleType, showEnharmonics, showColors],
@@ -543,42 +672,47 @@ watch(
   },
 );
 
-const selected = computed(() => {
-  if (gestureActive.value) return gestureSelection.value;
-  if (isModified.value) return userSelection.value;
+const voicingNotes = computed(() => {
   if (isArpeggioSelection.value) return {} as Record<string, boolean>;
 
   const result: Record<string, boolean> = {};
-
   const chord = chordNotes.value;
+
   if (chord) {
     for (const note of chord) {
       result[note] = true;
     }
   }
+
   return result;
 });
 
-const pianoActiveNotes = computed(() => {
+const selected = computed(() => {
   if (gestureActive.value) return gestureSelection.value;
   if (isModified.value) return userSelection.value;
-  if (!harmonicFilterActive.value) return selected.value;
-
-  return Object.fromEntries(
-    visibleHarmonicNotes.value.map((note) => [note, true]),
-  );
+  return voicingNotes.value;
 });
 
-const pianoNoteColors = computed(() => {
-  if (!showColors.value) return {} as Record<string, string>;
-
-  return Object.fromEntries(
-    instrumentFullNoteRange.map((note) => [
-      note,
-      color(note).replace('80', ''),
-    ]),
-  );
+const highlightedNotes = computed(() => {
+  if (gestureActive.value) return gestureSelection.value;
+  if (isModified.value) return userSelection.value;
+  if (staffReflectNote.value) {
+    return { [staffReflectNote.value]: true };
+  }
+  if (recentPlaybackNotes.value.length > 0) {
+    return Object.fromEntries(
+      recentPlaybackNotes.value.map((note) => [note, true]),
+    );
+  }
+  if (interactionHighlightSuppressed.value) return {};
+  return voicingNotes.value;
 });
+
+const pianoActiveNotes = computed(() => highlightedNotes.value);
+
+const pianoNoteColors = computed(() =>
+  octaveColorMap(instrumentFullNoteRange),
+);
 
 const pianoSecondaryNotes = computed(() => {
   return otherHandExclusiveNotes.value;
@@ -598,9 +732,21 @@ const pianoSecondaryNoteSet = computed(
   () => new Set(pianoSecondaryNotes.value),
 );
 
-function setHand(hand: 'left' | 'right') {
-  if (side.value !== hand) {
-    store.$patch({ side: hand });
+const suppressSelectionReset = ref(false);
+
+function setHand(hand: 'left' | 'right', options?: { preservePlayback?: boolean }) {
+  if (side.value === hand) return;
+
+  if (options?.preservePlayback) {
+    suppressSelectionReset.value = true;
+  }
+
+  store.$patch({ side: hand });
+
+  if (options?.preservePlayback) {
+    void nextTick(() => {
+      suppressSelectionReset.value = false;
+    });
   }
 }
 
@@ -637,12 +783,6 @@ function isPlayableBandoneonNote(note: string) {
   return isHarmonicNote(note);
 }
 
-const staffActiveNotes = computed(() => {
-  if (gestureActive.value) return gestureSelection.value;
-  if (isModified.value) return userSelection.value;
-  return {};
-});
-
 const staffState = computed(() => {
   if (gestureActive.value) {
     return {
@@ -654,23 +794,60 @@ const staffState = computed(() => {
     };
   }
 
-  return resolveStaffState({
-    gestureActive: false,
-    gestureTrace: gestureTrace.value,
-    isModified: isModified.value,
-    userSelection: userSelection.value,
-    recentPlaybackNotes: recentPlaybackNotes.value,
-    chordNotes: chordNotes.value,
-    chordFormulaNotes: chordFormulaNotes.value,
-    chordType: chordType.value,
-    usesFormulaChordSelection: usesFormulaChordSelection.value,
-    tonic: tonic.value,
-    scaleType: scaleType.value,
-    preferFlats: showEnharmonics.value,
-  });
+  if (recentPlaybackNotes.value.length > 0) {
+    return {
+      notes: recentPlaybackNotes.value,
+      source: 'recent' as const,
+    };
+  }
+
+  if (isModified.value) {
+    return {
+      notes: sortNotesByMidi(
+        Object.keys(userSelection.value).filter((note) => userSelection.value[note]),
+      ),
+      source: 'manual' as const,
+    };
+  }
+
+  return { notes: [], source: 'idle' as const };
 });
 
 const staffNotes = computed(() => staffState.value.notes);
+
+const staffActiveNotes = computed(() => {
+  if (gestureActive.value) return gestureSelection.value;
+  if (isModified.value) return userSelection.value;
+  if (staffNotes.value.length === 0) return {};
+
+  return Object.fromEntries(staffNotes.value.map((note) => [note, true]));
+});
+
+const staffShowMelodyTrail = computed(() => {
+  const source = staffState.value.source;
+  return source === 'gesture' || source === 'recent';
+});
+
+const staffNoteStaffs = computed(() => {
+  const notes = staffNotes.value;
+  if (notes.length === 0) return [] as StaffName[];
+
+  const source = staffState.value.source;
+  if (source === 'gesture' || source === 'recent') {
+    if (recentPlaybackStaffs.value.length === notes.length) {
+      return recentPlaybackStaffs.value;
+    }
+
+    if (gestureStaff.value) {
+      return notes.map(() => gestureStaff.value!);
+    }
+
+    return notes.map(() => staffForHand(side.value));
+  }
+
+  return notes.map((note) => staffForNoteRegister(note));
+});
+
 const staffGroupBreaks = computed(() => {
   if (
     staffState.value.source !== 'gesture' &&
@@ -694,9 +871,7 @@ const staffGroupBreaks = computed(() => {
 
 function color(tonal: string) {
   if (showColors.value) {
-    let octave = +tonal.slice(1);
-    if (tonal[1] === '#') octave = +tonal.slice(2);
-    return colors[octave % colors.length] + '80';
+    return withHexAlpha(octaveColorForNote(tonal), '80');
   }
   return 'transparent';
 }
@@ -721,7 +896,7 @@ function handleGestureNote(note: string, playable: boolean) {
     return;
   }
 
-  preview(note);
+  startNoteSound(note);
 
   gestureSelection.value = nextState.selection;
   gestureTrace.value = nextState.trace;
@@ -729,36 +904,47 @@ function handleGestureNote(note: string, playable: boolean) {
   rememberRecentPlayback([note]);
 }
 
-function beginGesture(note: string, playable: boolean) {
+function beginGesture(
+  note: string,
+  playable: boolean,
+  options?: { additive?: boolean },
+) {
   if (!playable) return;
   if (gestureActive.value && lastGestureNote.value === note) return;
 
+  interactionHighlightSuppressed.value = false;
   currentGesturePlaybackCount.value = 0;
   gestureActive.value = true;
-  gestureBaseSelection.value = {
-    ...(isModified.value ? userSelection.value : selected.value),
-  };
-  gestureMode.value = resolvePaintGestureMode(note, gestureBaseSelection.value);
+
+  if (options?.additive) {
+    gestureBaseSelection.value = {
+      ...(isModified.value ? userSelection.value : {}),
+    };
+    gestureMode.value = 'paint';
+  } else {
+    gestureBaseSelection.value = {
+      ...(isModified.value ? userSelection.value : selected.value),
+    };
+    gestureMode.value = resolvePaintGestureMode(
+      note,
+      gestureBaseSelection.value,
+    );
+  }
+
   gestureSelection.value = { ...gestureBaseSelection.value };
   gestureTrace.value = [];
   lastGestureNote.value = null;
   handleGestureNote(note, playable);
 }
 
-function endGesture() {
-  if (!gestureActive.value) return;
-
-  if (
-    soundMode.value !== 'sustain' &&
-    !selectionsEqual(gestureSelection.value, gestureBaseSelection.value)
-  ) {
+function commitGestureSelection() {
+  if (!selectionsEqual(gestureSelection.value, gestureBaseSelection.value)) {
     userSelection.value = { ...gestureSelection.value };
     isModified.value = true;
-  } else if (soundMode.value === 'sustain') {
-    userSelection.value = {};
-    isModified.value = false;
   }
+}
 
+function resetGestureState() {
   gestureActive.value = false;
   gestureSelection.value = {};
   gestureBaseSelection.value = {};
@@ -766,33 +952,99 @@ function endGesture() {
   gestureTrace.value = [];
   lastGestureNote.value = null;
   currentGesturePlaybackCount.value = 0;
+  gestureStaff.value = null;
+  activePreviewNote.value = null;
+}
+
+function endGesture() {
+  if (!gestureActive.value) return;
+
+  resetGestureState();
+  stopAllSounds();
+}
+
+function startNoteSound(note: string) {
+  if (!soundEnabled.value) return;
+  if (soundingNotes.value.has(note)) return;
+
+  soundingNotes.value.add(note);
+  activePreviewNote.value = note;
+  void playNote(note, { mode: 'sustain', replace: false });
+}
+
+function stopNoteSound(note: string) {
+  if (!soundingNotes.value.has(note)) return;
+
+  soundingNotes.value.delete(note);
+  stopNote(note, 0.05);
+
+  if (activePreviewNote.value === note) {
+    activePreviewNote.value = null;
+  }
+}
+
+function stopAllSounds() {
+  soundingNotes.value.clear();
   activePreviewNote.value = null;
   stopAll();
 }
 
 function preview(note: string) {
-  if (!soundEnabled.value) {
-    activePreviewNote.value = null;
-    return;
+  startNoteSound(note);
+}
+
+function beginKeyboardSession(additive: boolean) {
+  gestureActive.value = true;
+  gestureMode.value = 'paint';
+  gestureTrace.value = [];
+  lastGestureNote.value = null;
+  currentGesturePlaybackCount.value = 0;
+  gestureStaff.value = null;
+
+  gestureBaseSelection.value = additive
+    ? { ...(isModified.value ? userSelection.value : {}) }
+    : {};
+  gestureSelection.value = { ...gestureBaseSelection.value };
+}
+
+function onKeyboardNoteDown(note: string, additive = false) {
+  if (!isPlayableBandoneonNote(note)) return;
+  if (keyboardHeldNotes.value.has(note)) return;
+
+  if (keyboardHeldNotes.value.size === 0) {
+    beginKeyboardSession(additive);
   }
 
-  if (soundMode.value === 'sustain') {
-    activePreviewNote.value = note;
-    void playNote(note, { mode: 'sustain' });
-    return;
+  keyboardHeldNotes.value.add(note);
+
+  if (!gestureSelection.value[note]) {
+    gestureSelection.value = { ...gestureSelection.value, [note]: true };
+    rememberRecentPlayback([note]);
   }
 
-  if (activePreviewNote.value) {
-    stopNote(activePreviewNote.value, 0.03);
-  }
+  startNoteSound(note);
+  lastGestureNote.value = note;
+}
 
-  activePreviewNote.value = note;
-  void playNote(note, { mode: 'short', replace: true, duration: 0.4 });
+function onKeyboardNoteUp(note: string) {
+  if (!keyboardHeldNotes.value.has(note)) return;
+
+  keyboardHeldNotes.value.delete(note);
+  stopNoteSound(note);
+
+  if (keyboardHeldNotes.value.size === 0) {
+    endGesture();
+  }
+}
+
+function dismissDisplayedContext() {
+  resetUserSelection();
+  suppressInteractionHighlights();
 }
 
 function clearSelectedNotes() {
-  if (!hasManualSelectionToClear.value) return;
-  resetUserSelection();
+  if (!hasSelectionToClear.value) return;
+  dismissDisplayedContext();
 }
 
 function isSelectionControlTarget(target: EventTarget | null) {
@@ -807,7 +1059,8 @@ function isSelectionControlTarget(target: EventTarget | null) {
 
 function handleOutsideBandoneonPointerDown(event: PointerEvent) {
   if (event.button !== 0) return;
-  if (!hasManualSelectionToClear.value) return;
+  if (gestureActive.value) return;
+  if (!hasSelectionToClear.value) return;
 
   const target = event.target;
   if (!(target instanceof Element)) return;
@@ -856,9 +1109,9 @@ function handleEscapeShortcut() {
     return;
   }
 
-  if (hasManualSelectionToClear.value) {
-    clearSelectedNotes();
-    escapeResetArmed.value = hasSearchContextToReset.value;
+  if (hasSelectionToClear.value) {
+    dismissDisplayedContext();
+    escapeResetArmed.value = false;
     return;
   }
 
@@ -879,12 +1132,27 @@ function handleEscapeShortcut() {
 useKeyboard({
   onEscape: handleEscapeShortcut,
   onOpenSettings: handleOpenSettingsShortcut,
+  play: {
+    noteCandidates: keyboardPlayCandidates,
+    getBaseOctave: () => keyboardEffectiveBaseOctave.value,
+    onOctaveChange: shiftKeyboardOctave,
+    onNoteDown: (note, options) => {
+      onKeyboardNoteDown(note, options?.additive ?? false);
+    },
+    onNoteUp: (note) => {
+      onKeyboardNoteUp(note);
+    },
+  },
 });
 
 function handleInteractionCancel() {
-  activePreviewNote.value = null;
-  stopAll();
-  endGesture();
+  clearStaffReflect();
+  keyboardHeldNotes.value.clear();
+  stopAllSounds();
+  if (gestureActive.value) {
+    resetGestureState();
+    clearRecentPlayback();
+  }
 }
 
 function handleDocumentVisibilityChange() {
@@ -893,16 +1161,22 @@ function handleDocumentVisibilityChange() {
   }
 }
 
-function onBandoneonStart(note: string) {
-  beginGesture(note, isPlayableBandoneonNote(note));
+function onBandoneonStart(
+  note: string,
+  options?: { additive?: boolean },
+) {
+  beginGesture(note, isPlayableBandoneonNote(note), options);
 }
 
-function onPianoStart(note: string) {
+function onPianoStart(
+  note: string,
+  options?: { additive?: boolean },
+) {
   if (pianoSecondaryNoteSet.value.has(note)) {
-    setHand(otherHand.value);
+    setHand(otherHand.value, { preservePlayback: true });
   }
 
-  beginGesture(note, isPlayableBandoneonNote(note));
+  beginGesture(note, isPlayableBandoneonNote(note), options);
 }
 
 function onBandoneonHover(note: string) {
@@ -911,15 +1185,50 @@ function onBandoneonHover(note: string) {
   handleGestureNote(note, isPlayableBandoneonNote(note));
 }
 
-function onStaffStart(note: string, staff: StaffName) {
-  setHand(handForStaff(staff));
-  beginGesture(note, isPlayableBandoneonNote(note));
+function clearStaffReflect() {
+  if (!staffReflectNote.value) return;
+
+  stopNoteSound(staffReflectNote.value);
+  staffReflectNote.value = null;
+}
+
+function handlePointerUp() {
+  clearStaffReflect();
+  endGesture();
+}
+
+function maybeSwitchHandForStaffNote(note: string, staff: StaffName) {
+  const staffHand = handForStaff(staff);
+  if (staffHand === side.value) return;
+
+  if (playableNotesForHand(side.value).includes(note)) return;
+
+  if (playableNotesForHand(staffHand).includes(note)) {
+    setHand(staffHand, { preservePlayback: true });
+  }
+}
+
+function onStaffReflect(note: string, staff: StaffName) {
+  maybeSwitchHandForStaffNote(note, staff);
+
+  staffReflectNote.value = note;
+  preview(note);
+}
+
+function onStaffStart(
+  note: string,
+  staff: StaffName,
+  options?: { additive?: boolean },
+) {
+  gestureStaff.value = staff;
+  maybeSwitchHandForStaffNote(note, staff);
+  beginGesture(note, isPlayableBandoneonNote(note), options);
 }
 
 function onStaffHover(note: string, staff: StaffName) {
   if (!gestureActive.value) return;
+  if (gestureStaff.value && staff !== gestureStaff.value) return;
 
-  setHand(handForStaff(staff));
   handleGestureNote(note, isPlayableBandoneonNote(note));
 }
 
@@ -927,14 +1236,14 @@ function onPianoHover(note: string) {
   if (!gestureActive.value) return;
 
   if (pianoSecondaryNoteSet.value.has(note)) {
-    setHand(otherHand.value);
+    setHand(otherHand.value, { preservePlayback: true });
   }
 
   handleGestureNote(note, isPlayableBandoneonNote(note));
 }
 
 const onReset = () => {
-  resetUserSelection();
+  dismissDisplayedContext();
   if (chordName.value && !isArpeggioSelection.value) {
     settings.resetUserChord(side.value, chordName.value);
   }
@@ -946,16 +1255,18 @@ const onResetSearch = () => {
 
 onMounted(() => {
   store.$reset();
-  window.addEventListener('pointerup', endGesture);
-  window.addEventListener('pointercancel', endGesture);
+  settings.$patch({ soundMode: 'short' });
+  syncKeyboardHandBaseOctave();
+  window.addEventListener('pointerup', handlePointerUp);
+  window.addEventListener('pointercancel', handlePointerUp);
   window.addEventListener('blur', handleInteractionCancel);
   document.addEventListener('pointerdown', handleOutsideBandoneonPointerDown);
   document.addEventListener('visibilitychange', handleDocumentVisibilityChange);
 });
 
 onUnmounted(() => {
-  window.removeEventListener('pointerup', endGesture);
-  window.removeEventListener('pointercancel', endGesture);
+  window.removeEventListener('pointerup', handlePointerUp);
+  window.removeEventListener('pointercancel', handlePointerUp);
   window.removeEventListener('blur', handleInteractionCancel);
   document.removeEventListener(
     'pointerdown',

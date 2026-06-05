@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   handForStaff,
+  hitStaffDisplayNote,
   isPointInStaffArea,
   matchStaffPointerNote,
   resolveStaffFromY,
   resolveStaffPitchFromY,
   staffForHand,
+  staffForNoteRegister,
   staffInteractionBounds,
   staffY,
 } from '../src/utils/staffPointer';
@@ -77,12 +79,46 @@ describe('staffPointer', () => {
     expect(handForStaff('bass')).toBe('left');
   });
 
+  it('places notes on treble or bass by register', () => {
+    expect(staffForNoteRegister('B3')).toBe('bass');
+    expect(staffForNoteRegister('C4')).toBe('treble');
+    expect(staffForNoteRegister('G4')).toBe('treble');
+  });
+
   it('resolves treble vs bass from vertical position', () => {
     const trebleY = staffY('G4', 'treble');
     const bassY = staffY('G2', 'bass');
 
     expect(resolveStaffFromY(trebleY, ['G4'], ['G2'])).toBe('treble');
     expect(resolveStaffFromY(bassY, ['G4'], ['G2'])).toBe('bass');
+  });
+
+  it('prefers bass in overlap when the bass note is closer', () => {
+    const y = staffY('B5', 'bass');
+
+    expect(
+      resolveStaffFromY(y, ['G4', 'A4'], ['B5', 'G5'], 'bass'),
+    ).toBe('bass');
+  });
+
+  it('hits an existing displayed note head before empty-staff matching', () => {
+    const hit = hitStaffDisplayNote(500, staffY('G4', 'treble'), 'treble', [
+      { note: 'G4', x: 500, y: staffY('G4', 'treble'), staff: 'treble' },
+      { note: 'A4', x: 540, y: staffY('A4', 'treble'), staff: 'treble' },
+    ]);
+
+    expect(hit?.note).toBe('G4');
+  });
+
+  it('returns null when the click misses every note head', () => {
+    const hit = hitStaffDisplayNote(
+      500,
+      staffY('G4', 'treble') + 40,
+      'treble',
+      [{ note: 'G4', x: 500, y: staffY('G4', 'treble'), staff: 'treble' }],
+    );
+
+    expect(hit).toBeNull();
   });
 
   it('returns null when the click is far from any playable note', () => {

@@ -70,7 +70,7 @@ export const useStore = defineStore('main', {
     direction: 'open' as 'open' | 'close',
     tonic: null as null | string,
     chordType: null as null | string,
-    scaleType: null as null | string,
+    scaleType: 'white-keys' as null | string,
     resetNonce: 0,
   }),
 
@@ -170,11 +170,10 @@ export const useStore = defineStore('main', {
     },
 
     resetSearch() {
-      this.side = 'right';
       this.direction = 'open';
       this.tonic = null;
       this.chordType = null;
-      this.scaleType = null;
+      this.scaleType = 'white-keys';
       this.showEnharmonics = false;
       this.showColors = true;
       this.resetNonce += 1;

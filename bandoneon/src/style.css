@@ -1,3 +1,19 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
+
+@theme {
+  --color-octave-0: #22c55e;
+  --color-octave-1: #eab308;
+  --color-octave-2: #0ea5e9;
+  --color-octave-3: #ef4444;
+}
+
+:root {
+  --octave-0: #22c55e;
+  --octave-1: #eab308;
+  --octave-2: #0ea5e9;
+  --octave-3: #ef4444;
+  --piano-keyboard-bg: #050505;
+  --piano-inactive: #050505;
+}
