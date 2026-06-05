@@ -31,24 +31,19 @@ export type ScaleGuidePath = {
   d: string;
 };
 
-export function buildColoredScaleGuidePaths(
+export function buildContinuousScaleGuidePath(
   notes: string[],
-  buildPath: (octaveNotes: string[]) => string | null,
-): ScaleGuidePath[] {
-  if (notes.length === 0) return [];
+  buildPath: (notes: string[]) => string | null,
+): ScaleGuidePath | null {
+  if (notes.length === 0) return null;
 
-  return [...groupNotesByOctave(notes).entries()]
-    .sort((left, right) => left[0] - right[0])
-    .flatMap(([octave, octaveNotes]) => {
-      const path = buildPath(octaveNotes);
-      if (!path) return [];
+  const d = buildPath(notes);
+  if (!d) return null;
 
-      return [
-        {
-          octave,
-          stroke: guideColorForOctave(octave),
-          d: path,
-        },
-      ];
-    });
+  const octave = noteOctave(notes[0]!);
+  return {
+    octave,
+    stroke: guideColorForOctave(octave),
+    d,
+  };
 }

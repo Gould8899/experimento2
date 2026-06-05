@@ -276,7 +276,7 @@ function createSecondaryZone(start: PianoKey, end: PianoKey): SecondaryZone {
 
   return {
     left,
-    width: Math.max(whiteKeyWidthRatio.value * 100, right - left),
+    width: Math.max(whiteKeyWidthRatio.value * 100, right - left) + 0.35,
   };
 }
 
@@ -336,7 +336,7 @@ function whiteKeyClass(key: PianoKey) {
   const role = keyRole(key);
 
   return [
-    'absolute top-0 bottom-0 overflow-hidden transition-[background,box-shadow] duration-150',
+    'absolute top-0 bottom-0 m-0 appearance-none overflow-hidden p-0 outline-none transition-[background,box-shadow] duration-150',
     role === 'secondary'
       ? 'z-[12] cursor-pointer rounded-none border-0 bg-transparent'
       : 'z-20 border-0',
@@ -355,7 +355,7 @@ function blackKeyClass(key: PianoKey) {
   const role = keyRole(key);
 
   return [
-    'absolute top-0 overflow-hidden transition-[background,box-shadow] duration-150',
+    'absolute top-0 m-0 appearance-none overflow-hidden p-0 outline-none transition-[background,box-shadow] duration-150',
     role === 'secondary'
       ? 'z-[22] cursor-pointer rounded-b-[0.45rem] border-0'
       : 'z-30 rounded-b-[0.45rem] border-0',
@@ -372,9 +372,13 @@ function blackKeyClass(key: PianoKey) {
 
 function keyGeometry(key: PianoKey, variant: 'white' | 'black') {
   if (variant === 'white') {
+    const widthPct = whiteKeyWidth.value;
+
     return {
       left: `${key.left * 100}%`,
-      width: `${whiteKeyWidth.value}%`,
+      // Slight overlap hides sub-pixel seams between adjacent white keys.
+      width: `calc(${widthPct}% + 1.25px)`,
+      boxSizing: 'border-box' as const,
     };
   }
 
@@ -382,6 +386,7 @@ function keyGeometry(key: PianoKey, variant: 'white' | 'black') {
     left: `${key.left * 100}%`,
     width: `${whiteKeyWidth.value * 0.62}%`,
     height: '61%',
+    boxSizing: 'border-box' as const,
   };
 }
 
@@ -410,12 +415,22 @@ function mutedStyle(key: PianoKey, variant: 'white' | 'black') {
   const isDark =
     typeof document !== 'undefined' &&
     document.documentElement.classList.contains('dark');
+  const border = isDark ? PIANO_THEME.mutedBorderDark : PIANO_THEME.mutedBorderLight;
+  const stripe = isDark ? PIANO_THEME.mutedStripeDark : PIANO_THEME.mutedStripeLight;
+
+  if (variant === 'white') {
+    return {
+      ...keyGeometry(key, 'white'),
+      background: stripe,
+      boxShadow: `inset 0 0 0 1px ${border}`,
+    };
+  }
 
   return {
-    ...keyGeometry(key, variant),
-    background: isDark ? PIANO_THEME.mutedStripeDark : PIANO_THEME.mutedStripeLight,
-    boxShadow: `inset 0 0 0 1px ${isDark ? PIANO_THEME.mutedBorderDark : PIANO_THEME.mutedBorderLight}`,
-    outline: `1px dashed ${isDark ? PIANO_THEME.mutedBorderDark : PIANO_THEME.mutedBorderLight}`,
+    ...keyGeometry(key, 'black'),
+    background: stripe,
+    boxShadow: `inset 0 0 0 1px ${border}`,
+    outline: `1px dashed ${border}`,
     outlineOffset: '-2px',
   };
 }
@@ -499,7 +514,7 @@ function blackKeyStyle(key: PianoKey) {
 }
 
 function pointerOptions(event: PointerEvent) {
-  return { additive: event.ctrlKey || event.metaKey };
+  return { additive: event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey };
 }
 
 function resolvePointerNote(event: PointerEvent) {

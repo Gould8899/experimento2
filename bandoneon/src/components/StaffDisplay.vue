@@ -796,7 +796,8 @@ function onSvgPointerDown(event: PointerEvent) {
   if (!staff || !note) return;
 
   activePointerId.value = event.pointerId;
-  pointerAdditive.value = event.ctrlKey || event.metaKey;
+  pointerAdditive.value =
+    event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey;
   activeGestureStaff.value = staff;
   if (event.currentTarget instanceof SVGSVGElement) {
     event.currentTarget.setPointerCapture(event.pointerId);

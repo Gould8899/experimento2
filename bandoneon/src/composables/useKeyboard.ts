@@ -97,8 +97,13 @@ export function useKeyboard(options?: {
 
     const { key } = event;
 
-    if (options?.onOpenSettings && key === '?') {
-      if (event.type === 'keydown' && !event.repeat) {
+    if (key === '?' || key === '¿') {
+      if (
+        options?.onOpenSettings &&
+        key === '?' &&
+        event.type === 'keydown' &&
+        !event.repeat
+      ) {
         event.preventDefault();
         options.onOpenSettings();
       }
@@ -110,7 +115,11 @@ export function useKeyboard(options?: {
       if (!pianoKey) return;
 
       const interaction = {
-        additive: event.ctrlKey || event.metaKey,
+        additive:
+          event.shiftKey &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey,
       };
 
       if (event.type === 'keydown') {

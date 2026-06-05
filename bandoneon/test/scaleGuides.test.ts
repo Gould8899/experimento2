@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  buildColoredScaleGuidePaths,
+  buildContinuousScaleGuidePath,
   guideColorForOctave,
   groupNotesByOctave,
 } from '../src/utils/scaleGuides';
@@ -18,15 +18,14 @@ describe('scaleGuides', () => {
     expect(groups.get(4)).toEqual(['C4', 'G4']);
   });
 
-  it('builds one colored path per octave', () => {
-    const guides = buildColoredScaleGuidePaths(
+  it('builds one continuous path across octaves', () => {
+    const guide = buildContinuousScaleGuidePath(
       ['C3', 'E3', 'C4'],
       (notes) => (notes.length > 0 ? `M${notes.join('-')}` : null),
     );
 
-    expect(guides).toHaveLength(2);
-    expect(guides[0]?.octave).toBe(3);
-    expect(guides[1]?.octave).toBe(4);
-    expect(guides[0]?.stroke).not.toBe(guides[1]?.stroke);
+    expect(guide?.octave).toBe(3);
+    expect(guide?.d).toBe('MC3-E3-C4');
+    expect(guide?.stroke).toBe(guideColorForOctave(3));
   });
 });

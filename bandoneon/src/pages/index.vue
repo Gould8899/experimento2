@@ -270,9 +270,10 @@ import {
 import {
   clampKeyboardBaseOctave,
   inferDefaultKeyboardBaseOctave,
+  keyboardOctaveShiftForTarget,
 } from '../utils/pianoKeyboardOctave';
 import {
-  buildColoredScaleGuidePaths,
+  buildContinuousScaleGuidePath,
 } from '../utils/scaleGuides';
 import {
   applyPaintGestureStep,
@@ -386,6 +387,7 @@ const recentPlaybackStaffs = ref<StaffName[]>([]);
 const recentPlaybackGroups = ref<number[]>([]);
 const currentGesturePlaybackCount = ref(0);
 const gestureStaff = ref<StaffName | null>(null);
+const gestureAdditive = ref(false);
 const activePreviewNote = ref<string | null>(null);
 const soundingNotes = ref(new Set<string>());
 const keyboardHeldNotes = ref(new Set<string>());
@@ -402,10 +404,18 @@ function keyboardPlayCandidates() {
   return visibleNotes.value.filter((note) => isPlayableBandoneonNote(note));
 }
 
-function syncKeyboardHandBaseOctave() {
+function syncKeyboardHandBaseOctave(options?: { preserveEffective?: boolean }) {
+  const previousEffective = keyboardEffectiveBaseOctave.value;
   keyboardHandBaseOctave.value = inferDefaultKeyboardBaseOctave(
     keyboardPlayCandidates(),
   );
+
+  if (options?.preserveEffective) {
+    keyboardOctaveShift.value = keyboardOctaveShiftForTarget(
+      keyboardHandBaseOctave.value,
+      previousEffective,
+    );
+  }
 }
 
 const keyboardEffectiveBaseOctave = computed(() =>
@@ -504,12 +514,17 @@ function buildScalePath(notes: string[]) {
   return pathString;
 }
 
-const scaleGuidePaths = computed(() =>
-  buildColoredScaleGuidePaths(harmonicGuideNotes.value, (notes) => {
-    const path = buildScalePath(notes);
-    return path || null;
-  }),
-);
+const scaleGuidePaths = computed(() => {
+  const guide = buildContinuousScaleGuidePath(
+    harmonicGuideNotes.value,
+    (notes) => {
+      const path = buildScalePath(notes);
+      return path || null;
+    },
+  );
+
+  return guide ? [guide] : [];
+});
 
 const onDownload = () => {
   const filename = buildKeyboardExportFilename({
@@ -621,7 +636,7 @@ function clearStaffScore() {
 
 watch(side, () => {
   keyboardOctaveShift.value = 0;
-  syncKeyboardHandBaseOctave();
+  syncKeyboardHandBaseOctave({ preserveEffective: false });
 });
 
 watch([side, direction], () => {
@@ -661,7 +676,7 @@ watch(soundMode, () => {
 watch(
   [tonic, chordType, scaleType, showEnharmonics, showColors],
   () => {
-    syncKeyboardHandBaseOctave();
+    syncKeyboardHandBaseOctave({ preserveEffective: true });
   },
 );
 
@@ -698,11 +713,6 @@ const highlightedNotes = computed(() => {
   if (isModified.value) return userSelection.value;
   if (staffReflectNote.value) {
     return { [staffReflectNote.value]: true };
-  }
-  if (recentPlaybackNotes.value.length > 0) {
-    return Object.fromEntries(
-      recentPlaybackNotes.value.map((note) => [note, true]),
-    );
   }
   if (interactionHighlightSuppressed.value) return {};
   return voicingNotes.value;
@@ -913,6 +923,7 @@ function beginGesture(
   if (gestureActive.value && lastGestureNote.value === note) return;
 
   interactionHighlightSuppressed.value = false;
+  gestureAdditive.value = options?.additive ?? false;
   currentGesturePlaybackCount.value = 0;
   gestureActive.value = true;
 
@@ -920,15 +931,13 @@ function beginGesture(
     gestureBaseSelection.value = {
       ...(isModified.value ? userSelection.value : {}),
     };
-    gestureMode.value = 'paint';
-  } else {
-    gestureBaseSelection.value = {
-      ...(isModified.value ? userSelection.value : selected.value),
-    };
     gestureMode.value = resolvePaintGestureMode(
       note,
       gestureBaseSelection.value,
     );
+  } else {
+    gestureBaseSelection.value = {};
+    gestureMode.value = 'paint';
   }
 
   gestureSelection.value = { ...gestureBaseSelection.value };
@@ -937,15 +946,9 @@ function beginGesture(
   handleGestureNote(note, playable);
 }
 
-function commitGestureSelection() {
-  if (!selectionsEqual(gestureSelection.value, gestureBaseSelection.value)) {
-    userSelection.value = { ...gestureSelection.value };
-    isModified.value = true;
-  }
-}
-
 function resetGestureState() {
   gestureActive.value = false;
+  gestureAdditive.value = false;
   gestureSelection.value = {};
   gestureBaseSelection.value = {};
   gestureMode.value = 'paint';
@@ -959,8 +962,26 @@ function resetGestureState() {
 function endGesture() {
   if (!gestureActive.value) return;
 
+  const shouldCommitSelection = gestureAdditive.value;
+  const nextSelection = shouldCommitSelection
+    ? { ...gestureSelection.value }
+    : null;
+  const baseSelection = shouldCommitSelection
+    ? { ...gestureBaseSelection.value }
+    : null;
+
   resetGestureState();
   stopAllSounds();
+
+  if (
+    shouldCommitSelection &&
+    nextSelection &&
+    baseSelection &&
+    !selectionsEqual(nextSelection, baseSelection)
+  ) {
+    userSelection.value = nextSelection;
+    isModified.value = true;
+  }
 }
 
 function startNoteSound(note: string) {
@@ -994,6 +1015,7 @@ function preview(note: string) {
 }
 
 function beginKeyboardSession(additive: boolean) {
+  gestureAdditive.value = additive;
   gestureActive.value = true;
   gestureMode.value = 'paint';
   gestureTrace.value = [];

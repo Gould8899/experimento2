@@ -2,11 +2,10 @@ import { Note } from 'tonal';
 
 export type PianoLayoutEntry = {
   pc: string;
-  octaveOffset: number;
 };
 
-function entry(pc: string, octaveOffset = 0): PianoLayoutEntry {
-  return { pc, octaveOffset };
+function entry(pc: string): PianoLayoutEntry {
+  return { pc };
 }
 
 /** Chromatic row starting on La (A). */
@@ -23,13 +22,12 @@ export const PIANO_LAYOUT_A_KEYS = {
   h: entry('F#'),
   n: entry('G'),
   j: entry('G#'),
-  m: entry('A', 1),
-  k: entry('A#', 1),
-  ',': entry('B', 1),
-  l: entry('C', 1),
-  '.': entry('C#', 1),
-  ñ: entry('D', 1),
-  '-': entry('D#', 1),
+  m: entry('A'),
+  k: entry('A#'),
+  ',': entry('B'),
+  '.': entry('C'),
+  ñ: entry('C#'),
+  '-': entry('D'),
 } as const satisfies Record<string, PianoLayoutEntry>;
 
 /** Chromatic row starting on Do (C) up to Fa# (F#). */
@@ -46,13 +44,12 @@ export const PIANO_LAYOUT_C_KEYS = {
   y: entry('A'),
   '7': entry('A#'),
   u: entry('B'),
-  i: entry('C', 1),
-  '9': entry('C#', 1),
-  o: entry('D', 1),
-  '0': entry('D#', 1),
-  p: entry('E', 1),
-  '´': entry('F', 1),
-  '¿': entry('F#', 1),
+  i: entry('C'),
+  '9': entry('C#'),
+  o: entry('D'),
+  '0': entry('D#'),
+  p: entry('E'),
+  '´': entry('F'),
 } as const satisfies Record<string, PianoLayoutEntry>;
 
 export const PIANO_LAYOUT_KEYS = {
@@ -97,7 +94,6 @@ export const PIANO_LAYOUT_A_ORDER = [
   'm',
   'k',
   ',',
-  'l',
   '.',
   'ñ',
   '-',
@@ -122,7 +118,6 @@ export const PIANO_LAYOUT_C_ORDER = [
   '0',
   'p',
   '´',
-  '¿',
 ] as const satisfies readonly PianoLayoutKey[];
 
 function buildPianoVisualLayout(

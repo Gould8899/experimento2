@@ -93,7 +93,10 @@ const emit = defineEmits<{
 }>();
 
 function onPointerDown(event: PointerEvent) {
-  emit('start', { additive: event.ctrlKey || event.metaKey });
+  emit('start', {
+    additive:
+      event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey,
+  });
 }
 
 const store = useStore();
