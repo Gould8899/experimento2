@@ -9,14 +9,30 @@ type ExportFilenameOptions = {
   chordType: string | null;
   scaleType: string | null;
   isModified: boolean;
+  preferFlats: boolean;
+  format?: 'pdf' | 'png' | 'svg';
 };
 
 // Converts a raw musical token into a URL/filename-safe segment.
 // Colons become dashes (e.g. "arp:M" → "arp-M"), sharps become "s" (C# → Cs),
 // and spaces become dashes.
 function slugifyToken(value: string) {
-  return value.replace(/:/g, '-').replace(/#/g, 's').replace(/\s+/g, '-');
+  return value
+    .replace(/:/g, '-')
+    .replace(/#/g, 's')
+    .replace(/\s+/g, '-')
+    .toLocaleLowerCase('es');
 }
+
+const sideNames: Record<string, string> = {
+  left: 'izquierda',
+  right: 'derecha',
+};
+
+const directionNames: Record<string, string> = {
+  open: 'abriendo',
+  close: 'cerrando',
+};
 
 // Builds a PNG filename that encodes every relevant piece of state so that
 // exported images are self-describing and won't overwrite each other.
@@ -28,13 +44,19 @@ export function buildKeyboardExportFilename({
   chordType,
   scaleType,
   isModified,
+  preferFlats,
+  format = 'png',
 }: ExportFilenameOptions) {
-  const segments = ['bandoneon', instrument, side, direction];
+  const segments = [
+    sideNames[side] ?? slugifyToken(side),
+    directionNames[direction] ?? slugifyToken(direction),
+    preferFlats ? 'bemoles' : 'sostenidos',
+  ];
 
   if (tonic) segments.push(slugifyToken(tonic));
   if (chordType) segments.push(slugifyToken(chordType));
   if (scaleType) segments.push(slugifyToken(scaleType));
-  if (isModified) segments.push('custom');
+  if (isModified) segments.push('personalizado');
 
-  return `${segments.join('-')}.png`;
+  return `${segments.join('-')}.${format}`;
 }

@@ -40,7 +40,9 @@
             :reset-search-shortcut="resetSearchShortcut"
             @reset="onReset"
             @reset-search="onResetSearch"
-            @download="onDownload"
+            @download-png="onDownload('png')"
+            @download-pdf="onDownload('pdf')"
+            @download-svg="onDownload('svg')"
             @toggle-scale-guides="setScaleGuidesVisibility"
           />
         </section>
@@ -526,7 +528,7 @@ const scaleGuidePaths = computed(() => {
   return guide ? [guide] : [];
 });
 
-const onDownload = () => {
+const onDownload = (format: 'pdf' | 'png' | 'svg') => {
   const filename = buildKeyboardExportFilename({
     instrument: instrument.value,
     side: side.value,
@@ -535,9 +537,17 @@ const onDownload = () => {
     chordType: chordType.value,
     scaleType: scaleType.value,
     isModified: isModified.value,
+    preferFlats: showEnharmonics.value,
+    format,
   });
 
-  keyboardEl.value?.download(filename);
+  if (format === 'pdf') {
+    void keyboardEl.value?.downloadPdf(filename);
+  } else if (format === 'svg') {
+    keyboardEl.value?.downloadSvg(filename);
+  } else {
+    keyboardEl.value?.download(filename);
+  }
 };
 
 function rememberRecentPlayback(

@@ -12,10 +12,9 @@ describe('buildKeyboardExportFilename', () => {
         chordType: 'arp:aug',
         scaleType: 'whole tone',
         isModified: true,
+        preferFlats: false,
       }),
-    ).toBe(
-      'bandoneon-rheinische142-left-open-Cs-arp-aug-whole-tone-custom.png',
-    );
+    ).toBe('izquierda-abriendo-sostenidos-cs-arp-aug-whole-tone-personalizado.png');
   });
 
   it('omits optional segments when nothing is selected', () => {
@@ -28,7 +27,40 @@ describe('buildKeyboardExportFilename', () => {
         chordType: null,
         scaleType: null,
         isModified: false,
+        preferFlats: true,
       }),
-    ).toBe('bandoneon-rheinische142-right-close.png');
+    ).toBe('derecha-cerrando-bemoles.png');
+  });
+
+  it('supports SVG exports', () => {
+    expect(
+      buildKeyboardExportFilename({
+        instrument: 'rheinische142',
+        side: 'right',
+        direction: 'open',
+        tonic: null,
+        chordType: null,
+        scaleType: null,
+        isModified: false,
+        preferFlats: true,
+        format: 'svg',
+      }),
+    ).toBe('derecha-abriendo-bemoles.svg');
+  });
+
+  it('supports vector PDF exports', () => {
+    expect(
+      buildKeyboardExportFilename({
+        instrument: 'rheinische142',
+        side: 'left',
+        direction: 'close',
+        tonic: null,
+        chordType: null,
+        scaleType: null,
+        isModified: false,
+        preferFlats: false,
+        format: 'pdf',
+      }),
+    ).toBe('izquierda-cerrando-sostenidos.pdf');
   });
 });

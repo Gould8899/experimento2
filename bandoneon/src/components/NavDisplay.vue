@@ -167,10 +167,24 @@
         </Button>
         <Button
           class="w-full"
-          :title="t('save_image')"
-          @click.prevent="emit('download')"
+          :title="t('save_png')"
+          @click.prevent="emit('downloadPng')"
         >
-          {{ t('save_image') }}
+          {{ t('save_png') }}
+        </Button>
+        <Button
+          class="w-full"
+          :title="t('save_svg')"
+          @click.prevent="emit('downloadSvg')"
+        >
+          {{ t('save_svg') }}
+        </Button>
+        <Button
+          class="w-full"
+          :title="t('save_pdf')"
+          @click.prevent="emit('downloadPdf')"
+        >
+          {{ t('save_pdf') }}
         </Button>
         <Button
           :aria-pressed="soundMode === 'sustain'"
@@ -224,7 +238,9 @@ withDefaults(
 );
 
 const emit = defineEmits<{
-  download: [];
+  downloadPng: [];
+  downloadPdf: [];
+  downloadSvg: [];
   reset: [];
   resetSearch: [];
   toggleScaleGuides: [visible: boolean];
