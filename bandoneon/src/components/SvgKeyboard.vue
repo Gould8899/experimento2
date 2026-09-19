@@ -51,17 +51,16 @@ const download = (filename: string) => {
   if (!svgEl.value) return;
 
   const margin = 30;
-  const bounds = svgEl.value.getBoundingClientRect();
-  if (bounds.width === 0 || bounds.height === 0) return;
-
   const exportScale = 2;
   const exportMargin = margin * exportScale;
+  const exportWidth = props.mode === 'flat' ? landscapeWidth : landscapeHeight;
+  const exportHeight = props.mode === 'flat' ? landscapeHeight : landscapeWidth;
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bounds.width * exportScale + exportMargin * 2);
-  canvas.height = Math.round(bounds.height * exportScale + exportMargin * 2);
+  canvas.width = exportWidth * exportScale + exportMargin * 2;
+  canvas.height = exportHeight * exportScale + exportMargin * 2;
   const exportSvg = svgEl.value.cloneNode(true) as SVGSVGElement;
-  exportSvg.setAttribute('width', String(Math.round(bounds.width)));
-  exportSvg.setAttribute('height', String(Math.round(bounds.height)));
+  exportSvg.setAttribute('width', String(exportWidth));
+  exportSvg.setAttribute('height', String(exportHeight));
   const data = new XMLSerializer().serializeToString(exportSvg);
   const win = window.URL || window.webkitURL || window;
   const img = new Image();
