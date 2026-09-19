@@ -54,10 +54,15 @@ const download = (filename: string) => {
   const bounds = svgEl.value.getBoundingClientRect();
   if (bounds.width === 0 || bounds.height === 0) return;
 
+  const exportScale = 2;
+  const exportMargin = margin * exportScale;
   const canvas = document.createElement('canvas');
-  canvas.width = (bounds.width + margin) * 2;
-  canvas.height = (bounds.height + margin) * 2;
-  const data = new XMLSerializer().serializeToString(svgEl.value);
+  canvas.width = Math.round(bounds.width * exportScale + exportMargin * 2);
+  canvas.height = Math.round(bounds.height * exportScale + exportMargin * 2);
+  const exportSvg = svgEl.value.cloneNode(true) as SVGSVGElement;
+  exportSvg.setAttribute('width', String(Math.round(bounds.width)));
+  exportSvg.setAttribute('height', String(Math.round(bounds.height)));
+  const data = new XMLSerializer().serializeToString(exportSvg);
   const win = window.URL || window.webkitURL || window;
   const img = new Image();
   const blob = new Blob([data], { type: 'image/svg+xml' });
@@ -79,10 +84,10 @@ const download = (filename: string) => {
     context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(
       img,
-      margin,
-      margin,
-      canvas.width - 2 * margin,
-      canvas.height - 2 * margin,
+      exportMargin,
+      exportMargin,
+      canvas.width - 2 * exportMargin,
+      canvas.height - 2 * exportMargin,
     );
     win.revokeObjectURL(url);
     const uri = canvas
